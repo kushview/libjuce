@@ -1,0 +1,9 @@
+[Desktop Entry]
+Name=JUCE Introjucer
+Comment=JUCE Project Builder
+Exec=Introjucer
+Icon=@JUCE_DATA@/icons/juce_icon.xpm
+Terminal=0
+Type=Application
+Encoding=UTF-8
+Categories=Development;Application;

@@ -1,3 +1,11 @@
+# Waf artifacts
+./build
+.lock-*
+.waf*
+
+# Python artifacts
+*.pyc
+
 # Compiled Object files
 *.slo
 *.lo
