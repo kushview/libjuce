@@ -313,15 +313,23 @@ class IntrojucerProject:
 
     def getModules (self):
         mods = []
+
         for mod in self.root.iter ("MODULE"):
-            mods += [mod.attrib ["id"]]
+            if 'id' in mod.attrib:
+                mods += [mod.attrib ["id"]]
+
+        if len(mods) == 0:
+            for mod in self.root.iter ("MODULES"):
+                if 'id' in mod.attrib:
+                    mods += [mod.attrib ['id']]
+
         return mods
 
     def getModulePath (self, module):
 
-        if 'Darwin' in platform.system():
+        if is_mac():
             tag = 'XCODE_MAC'
-        elif 'Linux' in platform.system():
+        elif is_linux():
             tag = 'LINUX_MAKE'
 
         paths = self.root.find('EXPORTFORMATS').find(tag).find('MODULEPATHS')
@@ -340,7 +348,7 @@ class IntrojucerProject:
             if "compile" in c.attrib and c.attrib["compile"] == "1":
                 f = "%s" % (c.attrib ["file"])
                 parent = os.path.join (self.proj, "..")
-                code.append (os.path.join (parent, os.path.relpath(f)))
+                code.append (os.path.join (parent, os.path.relpath (f)))
         return code
 
     def getLibraryCode (self):
@@ -348,7 +356,7 @@ class IntrojucerProject:
         for mod in self.getModules():
             module_path = self.getModulePath (mod)
             infofile = os.path.join (module_path, mod, "juce_module_info")
-            if os.path.exists(infofile):
+            if os.path.exists (infofile):
                 res = open(infofile)
                 data = json.load(res)
                 res.close()
@@ -390,11 +398,11 @@ class IntrojucerProject:
 
         return ''
 
-    def compile (self, waf_build, config='Debug', skipModules=False):
+    def compile (self, waf_build, config='Debug'):
 
         features = 'cxx '
         type = self.getProjectType()
-        if type == 'guiapp' or type == 'consoleapp':
+        if type == 'guiapp':
             features += 'cxxprogram'
         elif type == 'dll':
             features += 'cxxshlib'

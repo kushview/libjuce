@@ -49,6 +49,7 @@ ifeq ($(CONFIG),Release)
 endif
 
 OBJECTS := \
+  $(OBJDIR)/libjuce_44d6aa73.o \
   $(OBJDIR)/juce_audio_basics_fc343944.o \
   $(OBJDIR)/juce_audio_devices_45b64d02.o \
   $(OBJDIR)/juce_audio_formats_743796a2.o \
@@ -83,6 +84,11 @@ clean:
 strip:
 	@echo Stripping libjuce
 	-@strip --strip-unneeded $(OUTDIR)/$(TARGET)
+
+$(OBJDIR)/libjuce_44d6aa73.o: ../../Source/libjuce.cpp
+	-@mkdir -p $(OBJDIR)
+	@echo "Compiling libjuce.cpp"
+	@$(CXX) $(CXXFLAGS) -o "$@" -c "$<"
 
 $(OBJDIR)/juce_audio_basics_fc343944.o: ../../../src/modules/juce_audio_basics/juce_audio_basics.cpp
 	-@mkdir -p $(OBJDIR)

@@ -160,8 +160,6 @@ def build (bld):
         for lib in libs:
             lib.includes += ['project/JuceLibraryCode']
 
-        bld.add_group()
-
         for m in library_modules:
             module = juce.get_module_info (bld, m)
             slug = m.replace ('_', '-')
@@ -191,21 +189,19 @@ def build (bld):
         introjucer = juce.IntrojucerProject ('src/extras/Introjucer/Introjucer.jucer')
         obj = introjucer.compile (bld)
         make_desktop (bld, 'Introjucer')
-        bld.add_group()
 
     if bld.env.BUILD_JUCE_DEMO:
-        demo = juce.IntrojucerProject ('src/extras/JuceDemo/Juce Demo.jucer')
+        demo = juce.IntrojucerProject ('src/extras/Demo/JuceDemo.jucer')
         obj = demo.compile (bld)
         make_desktop (bld, 'JuceDemo')
-        bld.add_group()
 
     # Install common juce data
     bld.install_files (bld.env.DATADIR + '/juce/icons', 'data/juce_icon.xpm')
 
 def dist(ctx):
-    z=ctx.options.ziptype
+    z = ctx.options.ziptype
     if 'zip' in z:
         ziptype = z
     else:
         ziptype = "tar." + z
-    ctx.algo       = ziptype
+    ctx.algo = ziptype

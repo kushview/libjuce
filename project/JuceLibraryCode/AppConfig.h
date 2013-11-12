@@ -17,15 +17,7 @@
 //==============================================================================
 // [BEGIN_USER_CODE_SECTION]
 
-#include "libjuce_config.h"
 
-#if HAVE_ALSA
-  #define JUCE_ALSA 1
-#endif
-
-#if HAVE_JACK
-  #define JUCE_JACK 1
-#endif
 
 // [END_USER_CODE_SECTION]
 
