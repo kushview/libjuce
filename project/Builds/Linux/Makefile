@@ -55,7 +55,6 @@ OBJECTS := \
   $(OBJDIR)/juce_audio_processors_300d8efc.o \
   $(OBJDIR)/juce_audio_utils_d749b5c2.o \
   $(OBJDIR)/juce_box2d_a8c80662.o \
-  $(OBJDIR)/juce_browser_plugin_768ffe32.o \
   $(OBJDIR)/juce_core_17bfca26.o \
   $(OBJDIR)/juce_cryptography_fdb93c80.o \
   $(OBJDIR)/juce_data_structures_4169fd62.o \
@@ -64,9 +63,7 @@ OBJECTS := \
   $(OBJDIR)/juce_gui_basics_5c5e6e7a.o \
   $(OBJDIR)/juce_gui_extra_229df682.o \
   $(OBJDIR)/juce_opengl_1ebcdbc6.o \
-  $(OBJDIR)/juce_PluginUtilities_368c4c0e.o \
   $(OBJDIR)/juce_video_b2dbbba2.o \
-  $(OBJDIR)/juce_VST_Wrapper_7d221517.o \
 
 .PHONY: clean
 
@@ -117,11 +114,6 @@ $(OBJDIR)/juce_box2d_a8c80662.o: ../../../src/modules/juce_box2d/juce_box2d.cpp
 	@echo "Compiling juce_box2d.cpp"
 	@$(CXX) $(CXXFLAGS) -o "$@" -c "$<"
 
-$(OBJDIR)/juce_browser_plugin_768ffe32.o: ../../../src/modules/juce_browser_plugin_client/juce_browser_plugin.cpp
-	-@mkdir -p $(OBJDIR)
-	@echo "Compiling juce_browser_plugin.cpp"
-	@$(CXX) $(CXXFLAGS) -o "$@" -c "$<"
-
 $(OBJDIR)/juce_core_17bfca26.o: ../../../src/modules/juce_core/juce_core.cpp
 	-@mkdir -p $(OBJDIR)
 	@echo "Compiling juce_core.cpp"
@@ -162,19 +154,9 @@ $(OBJDIR)/juce_opengl_1ebcdbc6.o: ../../../src/modules/juce_opengl/juce_opengl.c
 	@echo "Compiling juce_opengl.cpp"
 	@$(CXX) $(CXXFLAGS) -o "$@" -c "$<"
 
-$(OBJDIR)/juce_PluginUtilities_368c4c0e.o: ../../../src/modules/juce_audio_plugin_client/utility/juce_PluginUtilities.cpp
-	-@mkdir -p $(OBJDIR)
-	@echo "Compiling juce_PluginUtilities.cpp"
-	@$(CXX) $(CXXFLAGS) -o "$@" -c "$<"
-
 $(OBJDIR)/juce_video_b2dbbba2.o: ../../../src/modules/juce_video/juce_video.cpp
 	-@mkdir -p $(OBJDIR)
 	@echo "Compiling juce_video.cpp"
-	@$(CXX) $(CXXFLAGS) -o "$@" -c "$<"
-
-$(OBJDIR)/juce_VST_Wrapper_7d221517.o: ../../../src/modules/juce_audio_plugin_client/VST/juce_VST_Wrapper.cpp
-	-@mkdir -p $(OBJDIR)
-	@echo "Compiling juce_VST_Wrapper.cpp"
 	@$(CXX) $(CXXFLAGS) -o "$@" -c "$<"
 
 -include $(OBJECTS:%.o=%.d)

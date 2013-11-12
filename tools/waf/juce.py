@@ -7,6 +7,19 @@ from xml.etree import ElementTree as ET
 from waflib import Utils, Logs, Errors
 from waflib.Configure import conf
 
+def display_header (title):
+    Logs.pprint ('BOLD', title)
+
+def display_msg (conf, msg, status = None, color = None):
+    color = 'CYAN'
+    if type(status) == bool and status or status == "True":
+        color = 'GREEN'
+    elif type(status) == bool and not status or status == "False":
+        color = 'YELLOW'
+    Logs.pprint('BOLD', " *", sep='')
+    Logs.pprint('NORMAL', "%s" % msg.ljust(conf.line_just - 3), sep='')
+    Logs.pprint('BOLD', ":", sep='')
+    Logs.pprint(color, status)
 
 @conf
 def check_juce (self):
@@ -20,6 +33,24 @@ def check_juce (self):
         self.end_msg(mdata["version"])
     else:
         self.end_msg ("no")
+
+@conf
+def check_cxx11 (self, required=False):
+    line_just = self.line_just
+
+    if is_mac():
+        self.check_cxx (linkflags=["-stdlib=libc++", "-lc++"],
+                        cxxflags=["-stdlib=libc++", "-std=c++11"], mandatory=required)
+        self.env.append_unique ("CXXFLAGS", ["-stdlib=libc++", "-std=c++11"])
+        self.env.append_unique ("LINKFLAGS", ["-stdlib=libc++", "-lc++"])
+    elif is_linux():
+        self.check_cxx (cxxflags=["-std=c++11"], mandatory=required)
+        self.env.append_unique ("CXXFLAGS", ["-std=c++11"])
+    else:
+        print "!!!!! SETUP CXX11 FOR " + platform.system()
+        exit (1)
+
+    self.line_just = line_just
 
 def is_mac():
     return 'Darwin' in platform.system()
@@ -64,7 +95,76 @@ def get_deps(mod):
     else:
         return []
 
-def get_frameworks(mod):
+class ModuleInfo:
+    data     = None
+    infofile = None
+
+    def __init__ (self, juce_info_file):
+        if os.path.exists (juce_info_file):
+            self.infofile = juce_info_file
+            res = open (self.infofile)
+            self.data = json.load (res)
+            res.close()
+
+    def isValid (self):
+        return self.data != None and self.infofile != None
+
+    def id (self):
+        return self.data ['id']
+
+    def name (self):
+        return self.data ['name']
+
+    def version (self):
+        return self.data ['version']
+
+    def description (self):
+        return self.data ['description']
+
+    def dependencies (self):
+        if not 'dependencies' in self.data:
+            return []
+
+        if not len(self.data ['dependencies']) > 0:
+            return []
+
+        deps = []
+        for dep in self.data ['dependencies']:
+            if None != dep['id']:
+                deps.append (dep ['id'])
+
+        return deps
+
+    def requiredPackages (self):
+        pkgs = []
+        for dep in self.dependencies():
+            pkgs.append (dep.replace ('_', '-'))
+        return pkgs
+
+    def website (self):
+        return self.data ['website']
+
+    def license (self):
+        return self.data ['license']
+
+    def linuxLibs (self):
+        libs = []
+
+        if not 'LinuxLibs' in self.data:
+            return libs
+
+        for lib in self.data ['LinuxLibs'].split():
+            l = '-l%s' % lib
+            libs.append (l)
+
+        return libs
+
+def get_module_info (ctx, mod):
+    nodes = find (ctx, os.path.join (mod, 'juce_module_info'))
+    infofile = "%s" % nodes[0].relpath()
+    return ModuleInfo (infofile)
+
+def get_frameworks (mod):
     if "juce_audio_basics" == mod:
         return ['COCOA', 'ACCELERATE']
     elif "juce_audio_devices" == mod:
@@ -157,7 +257,7 @@ def create_unified_lib (bld, tgt, mods, feats="cxx cxxshlib"):
     obj = bld (
         features    = feats,
         source      = src,
-        includes    = ["element/juce"],
+        includes    = [],
         name        = tgt,
         target      = tgt,
         use         = us
@@ -171,26 +271,6 @@ def module_path (ctx):
 def available_modules (ctx):
     return os.listdir (module_path (ctx))
 
-def display_msg (conf, msg, status = None, color = None):
-    color = 'CYAN'
-    if type(status) == bool and status or status == "True":
-        color = 'GREEN'
-    elif type(status) == bool and not status or status == "False":
-        color = 'YELLOW'
-    Logs.pprint('BOLD', " *", sep='')
-    Logs.pprint('NORMAL', "%s" % msg.ljust(conf.line_just - 3), sep='')
-    Logs.pprint('BOLD', ":", sep='')
-    Logs.pprint(color, status)
-
-
-def module_source(bld, m):
-        code = '%s/juce_%s/juce_%s.cpp' % (bld.env.JUCE_MODULES_PATH, m, m)
-        if os.path.isabs(code):
-                return bld.root.find_resource(code)
-
-        return bld.path.find_resource(code)
-
-# this will eventually be used in a custom task generator
 class IntrojucerProject:
     data = None
     proj = None
@@ -211,7 +291,7 @@ class IntrojucerProject:
         return self.data != None and self.name != None
 
     def getProperty (self, prop):
-        return self.root.attrib[prop]
+        return self.root.attrib [prop]
 
     def getId (self):
         return self.getProperty ("id")
@@ -231,28 +311,42 @@ class IntrojucerProject:
     def getBundleIdentifier (self):
         return self.getProperty ("bundleIdentifier")
 
-    def getModules(self):
+    def getModules (self):
         mods = []
         for mod in self.root.iter ("MODULE"):
             mods += [mod.attrib ["id"]]
         return mods
 
+    def getModulePath (self, module):
+
+        if 'Darwin' in platform.system():
+            tag = 'XCODE_MAC'
+        elif 'Linux' in platform.system():
+            tag = 'LINUX_MAKE'
+
+        paths = self.root.find('EXPORTFORMATS').find(tag).find('MODULEPATHS')
+        for path in paths.iter ('MODULEPATH'):
+            if module == path.attrib ['id']:
+                return os.path.join (self.getProjectDir(), path.attrib ['path'])
+
+        return None
+
     def getProjectDir(self):
-         return os.path.relpath (os.path.join(self.proj, ".."))
+         return os.path.relpath (os.path.join (self.proj, ".."))
 
     def getProjectCode(self):
         code = []
-        for c in self.root.iter("FILE"):
+        for c in self.root.iter ("FILE"):
             if "compile" in c.attrib and c.attrib["compile"] == "1":
-                f = "%s" % (c.attrib["file"])
-                #f = os.path.relpath(unicodedata.normalize("NFKD", f).encode('ascii','ignore'))
+                f = "%s" % (c.attrib ["file"])
                 parent = os.path.join (self.proj, "..")
                 code.append (os.path.join (parent, os.path.relpath(f)))
         return code
 
-    def getLibraryCode (self, module_path):
+    def getLibraryCode (self):
         code = []
         for mod in self.getModules():
+            module_path = self.getModulePath (mod)
             infofile = os.path.join (module_path, mod, "juce_module_info")
             if os.path.exists(infofile):
                 res = open(infofile)
@@ -267,7 +361,7 @@ class IntrojucerProject:
                             code.append(f)
 
         # Add binary data file if it exists
-        bd = os.path.join (self.getProjectDir(), "JuceLibraryCode/BinaryData.cpp")
+        bd = os.path.join (self.getLibraryCodePath(), 'BinaryData.cpp')
         if os.path.exists(bd): code.append (bd)
 
         return code
@@ -275,5 +369,63 @@ class IntrojucerProject:
     def getLibraryCodePath (self):
         return os.path.join (self.getProjectDir(), "JuceLibraryCode")
 
-    def getBuildableCode (self, module_path):
-        return self.getProjectCode() + self.getLibraryCode(module_path)
+    def getBuildableCode (self):
+        return self.getProjectCode() + self.getLibraryCode()
+
+    def getModuleInfo (self, mod):
+        return ModuleInfo (os.path.join (self.getModulePath (mod), mod, 'juce_module_info'))
+
+    def getTargetName (self, configName):
+        if 'Darwin' in platform.system():
+            tag = 'XCODE_MAC'
+        elif 'Linux' in platform.system():
+            tag = 'LINUX_MAKE'
+        else:
+            tag = 'CODEBLOCKS'
+
+        configs = self.root.find ('EXPORTFORMATS').find(tag).find('CONFIGURATIONS')
+        for config in configs:
+            if config.attrib['name'] == configName:
+                return config.attrib['targetName']
+
+        return ''
+
+    def compile (self, waf_build, config='Debug', skipModules=False):
+
+        features = 'cxx '
+        type = self.getProjectType()
+        if type == 'guiapp' or type == 'consoleapp':
+            features += 'cxxprogram'
+        elif type == 'dll':
+            features += 'cxxshlib'
+
+        # TODO: figure out which compiler we're using
+
+        linkflags = []
+        cxxflags  = []
+
+        for mod in self.getModules():
+            info = self.getModuleInfo (mod)
+
+            if is_linux():
+                linkFlagsFunc = info.linuxLibs
+            else:
+                linkFlagsFunc = None
+
+            if None != linkFlagsFunc:
+                linkflags += linkFlagsFunc()
+
+        target = self.getTargetName (config)
+        if '' == target:
+            target = 'a.out'
+
+        object = waf_build (
+            features  = features,
+            source    = self.getBuildableCode(),
+            includes  = [self.getLibraryCodePath()],
+            linkflags = linkflags,
+            name      = self.getName(),
+            target    = self.getTargetName (config)
+        )
+
+        return object

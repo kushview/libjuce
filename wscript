@@ -40,19 +40,21 @@ top = '.'
 out = 'build'
 
 def options(opts):
-    opts.load("compiler_c compiler_cxx juce")
+    opts.load ('compiler_c compiler_cxx juce')
 
-    opts.add_option('--introjucer', default=False, action="store_true", \
-        dest="introjucer", help="Disable Jucer Builds [ Default: False ]")
+    opts.add_option('--no-introjucer', default=False, action="store_true", \
+        dest="no_introjucer", help="Disable Jucer Builds [ Default: False ]")
     opts.add_option('--juce-demo', default=False, action="store_true", \
         dest="juce_demo", help="Build the JUCE Demo [ Default: False ]")
+    opts.add_option('--juce-module-libs', default=False, action="store_true", \
+        dest="juce_module_libs", help="Build JUCE modules as shared/static libraries [ Default: False ]")
     opts.add_option('--static', default=False, action="store_true", \
         dest="static", help="Build Static Libraries [ Default: False ]")
     opts.add_option('--ziptype', default='gz', type='string', \
         dest='ziptype', help="Zip type for waf dist (gz/bz2/zip) [ Default: gz ]")
 
 def configure(conf):
-    conf.load("compiler_c compiler_cxx")
+    conf.load ('compiler_c compiler_cxx juce')
 
     # Put some defines in a header file
     conf.define ("LIBJUCE_VERSION", VERSION)
@@ -61,7 +63,7 @@ def configure(conf):
     conf.define ("LIBJUCE_MICRO_VERSION",LIBJUCE_MICRO_VERSION)
     conf.define ("LIBJUCE_EXTRA_VERSION",LIBJUCE_EXTRA_VERSION)
     conf.define ("UPSTREAM_VERSION", JUCE_VERSION);
-    conf.write_config_header ("Version.h")
+    conf.write_config_header ('Version.h')
 
     conf.check_inline()
 
@@ -70,9 +72,10 @@ def configure(conf):
     conf.env.BINDIR     = conf.env.PREFIX + '/bin'
     conf.env.INCLUDEDIR = conf.env.PREFIX + '/include'
 
+    # Setup JUCE
     conf.load ('juce')
-    # override a few juce.py environment vars
-    conf.env.JUCE_MODULE_PATH = 'src/modules'
+    conf.env.JUCE_MODULE_PATH = 'src/modules' # need an option for this
+    conf.check_cxx11()
 
     # Export version to the environment
     conf.env.LIBJUCE_MAJOR_VERSION = LIBJUCE_MAJOR_VERSION
@@ -81,9 +84,10 @@ def configure(conf):
     conf.env.APPNAME               = APPNAME
 
     # Store options in environment
-    conf.env.BUILD_INTROJUCER  = conf.options.introjucer
-    conf.env.BUILD_JUCE_DEMO   = conf.options.juce_demo
-    conf.env.BUILD_STATIC      = conf.options.static
+    conf.env.BUILD_INTROJUCER   = not conf.options.no_introjucer
+    conf.env.BUILD_JUCE_DEMO    = conf.options.juce_demo
+    conf.env.BUILD_JUCE_MODULES = conf.options.juce_module_libs
+    conf.env.BUILD_STATIC       = conf.options.static
 
     conf.check_cfg (package='x11',  uselib_store='X11',  args=['--libs', '--cflags'], mandatory=False)
     conf.check_cfg (package='xext', uselib_store='XEXT', args=['--libs', '--cflags'], mandatory=False)
@@ -92,12 +96,32 @@ def configure(conf):
     conf.check_cfg (package='jack', uselib_store='JACK', args=['--libs', '--cflags'], mandatory=False)
     conf.check_cfg (package='freetype2', uselib_store='FREETYPE2', args=['--libs', '--cflags'], mandatory=True)
 
+    conf.write_config_header ("libjuce_config.h")
+    conf.env.append_unique ('CXXFLAGS', '-I' + os.getcwd() + '/build')
+    conf.env.append_unique ('CFLAGS', '-I' + os.getcwd() + '/build')
+
+    conf.define ("DEBUG", 1)
+    conf.define ("_DEBUG", 1)
+    conf.define ("LINUX", 1)
+
+    print
+    juce.display_header ('libJUCE Configuration')
+    juce.display_msg (conf, 'Install Prefix', conf.env.PREFIX)
+    juce.display_msg (conf, 'Build Introjucer', conf.env.BUILD_INTROJUCER)
+    juce.display_msg (conf, 'Build Juce Demo', conf.env.BUILD_JUCE_DEMO)
+    juce.display_msg (conf, 'Build Modules as Libraries', conf.env.BUILD_JUCE_MODULES)
+    juce.display_msg (conf, 'Build Static Libraries', conf.env.BUILD_STATIC)
+    print
+    juce.display_msg (conf, 'Global CFLAGS', conf.env.CFLAGS)
+    juce.display_msg (conf, 'Global CXXFLAGS', conf.env.CXXFLAGS)
+    juce.display_msg (conf, 'Global LDFLAGS', conf.env.LINKFLAGS)
+
 def make_desktop (bld, slug):
     location = 'data'
     src = "data/%s.desktop.in" % (slug)
     tgt = "%s.desktop" % (slug)
 
-    if os.path.exists(src):
+    if os.path.exists (src):
         bld (features = "subst",
             source    = src,
             target    = tgt,
@@ -131,42 +155,52 @@ def install_module_headers (bld, modules):
 
 def build (bld):
 
-    modules = juce.build_modular_libs (bld, library_modules, JUCE_VERSION)
-    for module in modules:
-        module.includes += ['project/JuceLibraryCode']
-    install_module_headers (bld, library_modules)
-    bld.add_group()
+    if bld.env.BUILD_JUCE_MODULES:
+        libs = juce.build_modular_libs (bld, library_modules, JUCE_VERSION)
+        for lib in libs:
+            lib.includes += ['project/JuceLibraryCode']
+
+        bld.add_group()
+
+        for m in library_modules:
+            module = juce.get_module_info (bld, m)
+            slug = m.replace ('_', '-')
+
+            bld (
+                features     = 'subst',
+                source       = 'juce.pc.in',
+                target       = slug + '.pc',
+                install_path = bld.env.LIBDIR + '/pkgconfig',
+                PREFIX       = bld.env.PREFIX,
+                INCLUDEDIR   = bld.env.INCLUDEDIR,
+                LIBDIR       = bld.env.LIBDIR,
+                DEPLIBS      = ' '.join (module.linuxLibs()) + ' -l' + m,
+                REQUIRED     = ' '.join (module.requiredPackages()),
+                NAME         = module.name(),
+                DESCRIPTION  = module.description(),
+                VERSION      = module.version(),
+            )
+
+        install_module_headers (bld, library_modules)
+        bld.install_files (bld.env.INCLUDEDIR + '/juce-2', 'project/JuceLibraryCode/AppConfig.h')
+        bld.install_files (bld.env.INCLUDEDIR + '/juce-2', 'project/JuceLibraryCode/JuceHeader.h')
+        bld.install_files (bld.env.INCLUDEDIR + '/juce-2', 'build/libjuce_config.h')
+        bld.add_group()
 
     if bld.env.BUILD_INTROJUCER:
         introjucer = juce.IntrojucerProject ('src/extras/Introjucer/Introjucer.jucer')
-        make_desktop (bld, "Introjucer")
-        bld.program (
-            source    = introjucer.getBuildableCode (bld.env.JUCE_MODULE_PATH),
-            includes  = [introjucer.getLibraryCodePath()],
-            name      = 'Introjucer',
-            target    = 'Introjucer',
-            use       = ['X11', 'XEXT', 'FREETYPE2'],
-            linkflags = ['-lpthread', '-lrt', '-ldl']
-        )
+        obj = introjucer.compile (bld)
+        make_desktop (bld, 'Introjucer')
         bld.add_group()
 
     if bld.env.BUILD_JUCE_DEMO:
         demo = juce.IntrojucerProject ('src/extras/JuceDemo/Juce Demo.jucer')
-        make_desktop (bld, "JuceDemo")
-        bld.program (
-            source    = demo.getBuildableCode (bld.env.JUCE_MODULE_PATH),
-            includes  = [demo.getLibraryCodePath()],
-            name      = 'JuceDemo',
-            target    = 'JuceDemo',
-            use       = ['X11', 'XEXT', 'FREETYPE2', 'ALSA', 'GL'],
-            linkflags = ['-lpthread', '-lrt', '-ldl']
-        )
+        obj = demo.compile (bld)
+        make_desktop (bld, 'JuceDemo')
         bld.add_group()
 
     # Install common juce data
     bld.install_files (bld.env.DATADIR + '/juce/icons', 'data/juce_icon.xpm')
-    bld.install_files (bld.env.INCLUDEDIR + '/juce-2', 'project/JuceLibraryCode/AppConfig.h')
-    bld.install_files (bld.env.INCLUDEDIR + '/juce-2', 'project/JuceLibraryCode/JuceHeader.h')
 
 def dist(ctx):
     z=ctx.options.ziptype

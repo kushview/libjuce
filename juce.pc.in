@@ -1,0 +1,11 @@
+prefix=@PREFIX@
+exec_prefix=@EXEC_PREFIX@
+libdir=@LIBDIR@
+includedir=@INCLUDEDIR@
+
+Name: @NAME@
+Version: @VERSION@
+Description: @DESCRIPTION@
+Cflags: -I${includedir}/juce-2
+Libs: -L${libdir} @DEPLIBS@
+Requires: @REQUIRED@

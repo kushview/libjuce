@@ -17,28 +17,34 @@
 //==============================================================================
 // [BEGIN_USER_CODE_SECTION]
 
-// (You can add your own code in this section, and the Introjucer will not overwrite it)
+#include "libjuce_config.h"
+
+#if HAVE_ALSA
+  #define JUCE_ALSA 1
+#endif
+
+#if HAVE_JACK
+  #define JUCE_JACK 1
+#endif
 
 // [END_USER_CODE_SECTION]
 
 //==============================================================================
-#define JUCE_MODULE_AVAILABLE_juce_audio_basics               1
-#define JUCE_MODULE_AVAILABLE_juce_audio_devices              1
-#define JUCE_MODULE_AVAILABLE_juce_audio_formats              1
-#define JUCE_MODULE_AVAILABLE_juce_audio_plugin_client        1
-#define JUCE_MODULE_AVAILABLE_juce_audio_processors           1
-#define JUCE_MODULE_AVAILABLE_juce_audio_utils                1
-#define JUCE_MODULE_AVAILABLE_juce_box2d                      1
-#define JUCE_MODULE_AVAILABLE_juce_browser_plugin_client      1
-#define JUCE_MODULE_AVAILABLE_juce_core                       1
-#define JUCE_MODULE_AVAILABLE_juce_cryptography               1
-#define JUCE_MODULE_AVAILABLE_juce_data_structures            1
-#define JUCE_MODULE_AVAILABLE_juce_events                     1
-#define JUCE_MODULE_AVAILABLE_juce_graphics                   1
-#define JUCE_MODULE_AVAILABLE_juce_gui_basics                 1
-#define JUCE_MODULE_AVAILABLE_juce_gui_extra                  1
-#define JUCE_MODULE_AVAILABLE_juce_opengl                     1
-#define JUCE_MODULE_AVAILABLE_juce_video                      1
+#define JUCE_MODULE_AVAILABLE_juce_audio_basics          1
+#define JUCE_MODULE_AVAILABLE_juce_audio_devices         1
+#define JUCE_MODULE_AVAILABLE_juce_audio_formats         1
+#define JUCE_MODULE_AVAILABLE_juce_audio_processors      1
+#define JUCE_MODULE_AVAILABLE_juce_audio_utils           1
+#define JUCE_MODULE_AVAILABLE_juce_box2d                 1
+#define JUCE_MODULE_AVAILABLE_juce_core                  1
+#define JUCE_MODULE_AVAILABLE_juce_cryptography          1
+#define JUCE_MODULE_AVAILABLE_juce_data_structures       1
+#define JUCE_MODULE_AVAILABLE_juce_events                1
+#define JUCE_MODULE_AVAILABLE_juce_graphics              1
+#define JUCE_MODULE_AVAILABLE_juce_gui_basics            1
+#define JUCE_MODULE_AVAILABLE_juce_gui_extra             1
+#define JUCE_MODULE_AVAILABLE_juce_opengl                1
+#define JUCE_MODULE_AVAILABLE_juce_video                 1
 
 //==============================================================================
 // juce_audio_devices flags:
@@ -107,17 +113,6 @@
 
 #ifndef    JUCE_PLUGINHOST_AU
  //#define JUCE_PLUGINHOST_AU
-#endif
-
-//==============================================================================
-// juce_browser_plugin_client flags:
-
-#ifndef    JUCE_BUILD_NPAPI
- //#define JUCE_BUILD_NPAPI
-#endif
-
-#ifndef    JUCE_BUILD_ACTIVEX
- //#define JUCE_BUILD_ACTIVEX
 #endif
 
 //==============================================================================

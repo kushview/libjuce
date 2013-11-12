@@ -3,9 +3,7 @@
 <JUCERPROJECT id="Sy5MuQ" name="libjuce" projectType="dll" version="2.1.8"
               bundleIdentifier="org.element-project.libjuce" includeBinaryInAppConfig="1"
               jucerVersion="3.1.0" userNotes="This project exists so a proper AppConfig.h and JuceHeader.h are generated.">
-  <MAINGROUP id="adaLtz" name="libjuce">
-    <GROUP id="{CBDE8C25-919B-9920-8212-1CAE5E0CE18E}" name="Source"/>
-  </MAINGROUP>
+  <MAINGROUP id="adaLtz" name="libjuce"/>
   <EXPORTFORMATS>
     <LINUX_MAKE targetFolder="Builds/Linux">
       <CONFIGURATIONS>
@@ -30,8 +28,6 @@
         <MODULEPATH id="juce_audio_processors" path="../src/modules"/>
         <MODULEPATH id="juce_audio_utils" path="../src/modules"/>
         <MODULEPATH id="juce_box2d" path="../src/modules"/>
-        <MODULEPATH id="juce_audio_plugin_client" path="../src/modules"/>
-        <MODULEPATH id="juce_browser_plugin_client" path="../src/modules"/>
       </MODULEPATHS>
     </LINUX_MAKE>
     <XCODE_MAC targetFolder="Builds/MacOSX">
@@ -51,11 +47,9 @@
         <MODULEPATH id="juce_data_structures" path="../src/modules"/>
         <MODULEPATH id="juce_cryptography" path="../src/modules"/>
         <MODULEPATH id="juce_core" path="../src/modules"/>
-        <MODULEPATH id="juce_browser_plugin_client" path="../src/modules"/>
         <MODULEPATH id="juce_box2d" path="../src/modules"/>
         <MODULEPATH id="juce_audio_utils" path="../src/modules"/>
         <MODULEPATH id="juce_audio_processors" path="../src/modules"/>
-        <MODULEPATH id="juce_audio_plugin_client" path="../src/modules"/>
         <MODULEPATH id="juce_audio_formats" path="../src/modules"/>
         <MODULEPATH id="juce_audio_devices" path="../src/modules"/>
         <MODULEPATH id="juce_audio_basics" path="../src/modules"/>
@@ -66,11 +60,9 @@
     <MODULES id="juce_audio_basics" showAllCode="1" useLocalCopy="0"/>
     <MODULES id="juce_audio_devices" showAllCode="1" useLocalCopy="0"/>
     <MODULES id="juce_audio_formats" showAllCode="1" useLocalCopy="0"/>
-    <MODULES id="juce_audio_plugin_client" showAllCode="1" useLocalCopy="0"/>
     <MODULES id="juce_audio_processors" showAllCode="1" useLocalCopy="0"/>
     <MODULES id="juce_audio_utils" showAllCode="1" useLocalCopy="0"/>
     <MODULES id="juce_box2d" showAllCode="1" useLocalCopy="0"/>
-    <MODULES id="juce_browser_plugin_client" showAllCode="1" useLocalCopy="0"/>
     <MODULES id="juce_core" showAllCode="1" useLocalCopy="0"/>
     <MODULES id="juce_cryptography" showAllCode="1" useLocalCopy="0"/>
     <MODULES id="juce_data_structures" showAllCode="1" useLocalCopy="0"/>
