@@ -222,6 +222,7 @@ def build_modular_libs (bld, mods, vnum=""):
     mext = extension()
 
     for mod in mods:
+        info = get_module_info (bld, mod)
         src = find (bld, mod + mext)
         obj = bld (
             features    = "cxx cxxshlib",
@@ -229,7 +230,8 @@ def build_modular_libs (bld, mods, vnum=""):
             name        = mod,
             target      = mod,
             use         = get_use_libs (mod) + get_deps (mod),
-            includes    = []
+            includes    = [],
+            linkflags  = info.linuxLibs()
         )
         if len(vnum) > 0:
             obj.vnum = vnum
@@ -398,7 +400,7 @@ class IntrojucerProject:
 
         return ''
 
-    def compile (self, waf_build, config='Debug'):
+    def compile (self, waf_build, include_module_code=True):
 
         features = 'cxx '
         type = self.getProjectType()
@@ -409,31 +411,39 @@ class IntrojucerProject:
 
         # TODO: figure out which compiler we're using
 
-        linkflags = []
+        code      = self.getProjectCode()
         cxxflags  = []
+        includes  = []
+        linkflags = []
+        useflags  = []
 
-        for mod in self.getModules():
-            info = self.getModuleInfo (mod)
 
-            if is_linux():
-                linkFlagsFunc = info.linuxLibs
-            else:
-                linkFlagsFunc = None
+        # Do special things when modules are included
+        if include_module_code:
+            code += self.getLibraryCode()
+            includes += [self.getLibraryCodePath()]
+            for mod in self.getModules():
+                info = self.getModuleInfo (mod)
+                if is_linux():
+                    linkFlagsFunc = info.linuxLibs
+                else:
+                    linkFlagsFunc = None
+                if None != linkFlagsFunc:
+                    linkflags += linkFlagsFunc()
 
-            if None != linkFlagsFunc:
-                linkflags += linkFlagsFunc()
-
-        target = self.getTargetName (config)
+        # Figure a target name
+        target = self.getTargetName ("Debug")
         if '' == target:
             target = 'a.out'
 
         object = waf_build (
             features  = features,
-            source    = self.getBuildableCode(),
-            includes  = [self.getLibraryCodePath()],
+            source    = code,
+            includes  = includes,
             linkflags = linkflags,
             name      = self.getName(),
-            target    = self.getTargetName (config)
+            target    = target,
+            use       = useflags
         )
 
         return object

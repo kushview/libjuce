@@ -6,6 +6,6 @@ includedir=@INCLUDEDIR@
 Name: @NAME@
 Version: @VERSION@
 Description: @DESCRIPTION@
-Cflags: -I${includedir}/juce-2
+Cflags: -I${includedir}/juce-3/juce
 Libs: -L${libdir} @DEPLIBS@
 Requires: @REQUIRED@

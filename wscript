@@ -19,16 +19,13 @@ sys.path.insert(0, "tools/waf")
 import juce
 from juce import IntrojucerProject as Project
 
-
-JUCE_VERSION  ="2.1.8"
+JUCE_VERSION  ="3.0.0"
 EXTRA_VERSION =""
 
-PKG_VERSION   ="2.0"
-
 LIBJUCE_VERSION=JUCE_VERSION+EXTRA_VERSION
-LIBJUCE_MAJOR_VERSION=2
-LIBJUCE_MINOR_VERSION=1
-LIBJUCE_MICRO_VERSION=8
+LIBJUCE_MAJOR_VERSION=3
+LIBJUCE_MINOR_VERSION=0
+LIBJUCE_MICRO_VERSION=0
 LIBJUCE_EXTRA_VERSION=EXTRA_VERSION
 
 # For waf dist
@@ -42,12 +39,12 @@ out = 'build'
 def options(opts):
     opts.load ('compiler_c compiler_cxx juce')
 
-    opts.add_option('--no-introjucer', default=False, action="store_true", \
-        dest="no_introjucer", help="Disable Jucer Builds [ Default: False ]")
+    opts.add_option('--debug', default=False, action="store_true", \
+        dest="debug", help="Compile debuggable libraries [ Default: False ]")
+    opts.add_option('--introjucer', default=False, action="store_true", \
+        dest="introjucer", help="Disable Jucer Builds [ Default: False ]")
     opts.add_option('--juce-demo', default=False, action="store_true", \
         dest="juce_demo", help="Build the JUCE Demo [ Default: False ]")
-    opts.add_option('--juce-module-libs', default=False, action="store_true", \
-        dest="juce_module_libs", help="Build JUCE modules as shared/static libraries [ Default: False ]")
     opts.add_option('--static', default=False, action="store_true", \
         dest="static", help="Build Static Libraries [ Default: False ]")
     opts.add_option('--ziptype', default='gz', type='string', \
@@ -84,9 +81,10 @@ def configure(conf):
     conf.env.APPNAME               = APPNAME
 
     # Store options in environment
-    conf.env.BUILD_INTROJUCER   = not conf.options.no_introjucer
+    conf.env.BUILD_DEBUGGABLE   = conf.options.debug
+    conf.env.BUILD_INTROJUCER   = conf.options.introjucer
     conf.env.BUILD_JUCE_DEMO    = conf.options.juce_demo
-    conf.env.BUILD_JUCE_MODULES = conf.options.juce_module_libs
+    conf.env.BUILD_JUCE_MODULES = True
     conf.env.BUILD_STATIC       = conf.options.static
 
     if juce.is_mac():
@@ -102,15 +100,28 @@ def configure(conf):
         pass
 
     conf.write_config_header ("libjuce_config.h")
+
+    if juce.is_linux():
+        conf.define ("LINUX", 1)
+
+    if conf.options.debug:
+        conf.define ("DEBUG", 1)
+        conf.define ("_DEBUG", 1)
+        conf.env.append_unique ('CXXFLAGS', ['-g', '-ggdb', '-O0'])
+        conf.env.append_unique ('CFLAGS', ['-g', '-ggdb', '-O0'])
+    else:
+        conf.define ("NDEBUG", 1)
+        conf.env.append_unique ('CXXFLAGS', ['-Os'])
+        conf.env.append_unique ('CFLAGS', ['-Os'])
+
     conf.env.append_unique ('CXXFLAGS', '-I' + os.getcwd() + '/build')
     conf.env.append_unique ('CFLAGS', '-I' + os.getcwd() + '/build')
 
-    conf.define ("DEBUG", 1)
-    conf.define ("_DEBUG", 1)
-
     print
     juce.display_header ('libJUCE Configuration')
+    juce.display_msg (conf, 'JUCE Library Version', VERSION)
     juce.display_msg (conf, 'Installation Prefix', conf.env.PREFIX)
+    juce.display_msg (conf, 'Build Debuggable Binaries', conf.env.BUILD_DEBUGGABLE)
     juce.display_msg (conf, 'Build Introjucer', conf.env.BUILD_INTROJUCER)
     juce.display_msg (conf, 'Build Juce Demo', conf.env.BUILD_JUCE_DEMO)
     juce.display_msg (conf, 'Build Modules as Libraries', conf.env.BUILD_JUCE_MODULES)
@@ -156,18 +167,22 @@ library_modules = '''
     juce_video
 '''.split()
 
+def get_include_path(bld):
+    return bld.env.INCLUDEDIR + '/juce-3/juce'
+
 def install_module_headers (bld, modules):
     for mod in modules:
-        bld.install_files (bld.env.INCLUDEDIR + '/juce-2', bld.path.ant_glob ("src/modules/" + mod + "/**/*.h"), \
-            relative_trick=True, cwd=bld.path.find_dir ('src'))
+        bld.install_files (get_include_path (bld), \
+                           bld.path.ant_glob ("src/modules/" + mod + "/**/*.h"), \
+                           relative_trick=True, cwd=bld.path.find_dir ('src'))
 
 def build (bld):
-
     if bld.env.BUILD_JUCE_MODULES:
         libs = juce.build_modular_libs (bld, library_modules, JUCE_VERSION)
         for lib in libs:
             lib.includes += ['project/JuceLibraryCode']
 
+        # Create pkg-config files for all built modules
         for m in library_modules:
             module = juce.get_module_info (bld, m)
             slug = m.replace ('_', '-')
@@ -187,10 +202,17 @@ def build (bld):
                 VERSION      = module.version(),
             )
 
+        # testing linkage against module libs
+        testapp = Project ('extras/TestApp/TestApp.jucer')
+        obj = testapp.compile (bld, False)
+        obj.use += library_modules
+        obj.includes += ['project/JuceLibraryCode']
+        obj.install_path = None
+
         install_module_headers (bld, library_modules)
-        bld.install_files (bld.env.INCLUDEDIR + '/juce-2', 'project/JuceLibraryCode/AppConfig.h')
-        bld.install_files (bld.env.INCLUDEDIR + '/juce-2', 'project/JuceLibraryCode/JuceHeader.h')
-        bld.install_files (bld.env.INCLUDEDIR + '/juce-2', 'build/libjuce_config.h')
+        bld.install_files (get_include_path (bld), 'project/JuceLibraryCode/AppConfig.h')
+        bld.install_files (get_include_path (bld), 'project/JuceLibraryCode/JuceHeader.h')
+        bld.install_files (get_include_path (bld), 'build/libjuce_config.h')
         bld.add_group()
 
     if bld.env.BUILD_INTROJUCER:
