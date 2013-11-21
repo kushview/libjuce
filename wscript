@@ -89,12 +89,17 @@ def configure(conf):
     conf.env.BUILD_JUCE_MODULES = conf.options.juce_module_libs
     conf.env.BUILD_STATIC       = conf.options.static
 
-    conf.check_cfg (package='x11',  uselib_store='X11',  args=['--libs', '--cflags'], mandatory=False)
-    conf.check_cfg (package='xext', uselib_store='XEXT', args=['--libs', '--cflags'], mandatory=False)
-    conf.check_cfg (package='gl',   uselib_store='GL',   args=['--libs', '--cflags'], mandatory=False)
-    conf.check_cfg (package='alsa', uselib_store='ALSA', args=['--libs', '--cflags'], mandatory=False)
-    conf.check_cfg (package='jack', uselib_store='JACK', args=['--libs', '--cflags'], mandatory=False)
-    conf.check_cfg (package='freetype2', uselib_store='FREETYPE2', args=['--libs', '--cflags'], mandatory=True)
+    if juce.is_mac():
+        pass
+    elif juce.is_linux():
+        conf.check_cfg (package='x11',  uselib_store='X11',  args=['--libs', '--cflags'], mandatory=False)
+        conf.check_cfg (package='xext', uselib_store='XEXT', args=['--libs', '--cflags'], mandatory=False)
+        conf.check_cfg (package='gl',   uselib_store='GL',   args=['--libs', '--cflags'], mandatory=False)
+        conf.check_cfg (package='alsa', uselib_store='ALSA', args=['--libs', '--cflags'], mandatory=False)
+        conf.check_cfg (package='jack', uselib_store='JACK', args=['--libs', '--cflags'], mandatory=False)
+        conf.check_cfg (package='freetype2', uselib_store='FREETYPE2', args=['--libs', '--cflags'], mandatory=True)
+    elif juce.is_windows():
+        pass
 
     conf.write_config_header ("libjuce_config.h")
     conf.env.append_unique ('CXXFLAGS', '-I' + os.getcwd() + '/build')
@@ -102,21 +107,24 @@ def configure(conf):
 
     conf.define ("DEBUG", 1)
     conf.define ("_DEBUG", 1)
-    conf.define ("LINUX", 1)
 
     print
     juce.display_header ('libJUCE Configuration')
-    juce.display_msg (conf, 'Install Prefix', conf.env.PREFIX)
+    juce.display_msg (conf, 'Installation Prefix', conf.env.PREFIX)
     juce.display_msg (conf, 'Build Introjucer', conf.env.BUILD_INTROJUCER)
     juce.display_msg (conf, 'Build Juce Demo', conf.env.BUILD_JUCE_DEMO)
     juce.display_msg (conf, 'Build Modules as Libraries', conf.env.BUILD_JUCE_MODULES)
     juce.display_msg (conf, 'Build Static Libraries', conf.env.BUILD_STATIC)
     print
-    juce.display_msg (conf, 'Global CFLAGS', conf.env.CFLAGS)
-    juce.display_msg (conf, 'Global CXXFLAGS', conf.env.CXXFLAGS)
-    juce.display_msg (conf, 'Global LDFLAGS', conf.env.LINKFLAGS)
+    juce.display_header ('Global Compiler Flags')
+    juce.display_msg (conf, 'CFLAGS', conf.env.CFLAGS)
+    juce.display_msg (conf, 'CXXFLAGS', conf.env.CXXFLAGS)
+    juce.display_msg (conf, 'LDFLAGS', conf.env.LINKFLAGS)
 
 def make_desktop (bld, slug):
+    if not juce.is_linux():
+        return
+
     location = 'data'
     src = "data/%s.desktop.in" % (slug)
     tgt = "%s.desktop" % (slug)
@@ -151,7 +159,7 @@ library_modules = '''
 def install_module_headers (bld, modules):
     for mod in modules:
         bld.install_files (bld.env.INCLUDEDIR + '/juce-2', bld.path.ant_glob ("src/modules/" + mod + "/**/*.h"), \
-            relative_trick=True, cwd=bld.path.find_dir ("src"))
+            relative_trick=True, cwd=bld.path.find_dir ('src'))
 
 def build (bld):
 
@@ -186,7 +194,7 @@ def build (bld):
         bld.add_group()
 
     if bld.env.BUILD_INTROJUCER:
-        introjucer = juce.IntrojucerProject ('src/extras/Introjucer/Introjucer.jucer')
+        introjucer = Project ('src/extras/Introjucer/Introjucer.jucer')
         obj = introjucer.compile (bld)
         make_desktop (bld, 'Introjucer')
 
