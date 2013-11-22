@@ -221,12 +221,12 @@ def build (bld):
     if bld.env.BUILD_INTROJUCER:
         introjucer = Project ('src/extras/Introjucer/Introjucer.jucer')
         obj = introjucer.compile (bld)
-        make_desktop (bld, 'introjucer')
+        make_desktop (bld, 'Introjucer')
 
     if bld.env.BUILD_JUCE_DEMO:
         demo = juce.IntrojucerProject ('src/extras/Demo/JuceDemo.jucer')
         obj = demo.compile (bld)
-        make_desktop (bld, 'jucedemo')
+        make_desktop (bld, 'JuceDemo')
 
     # Install common juce data
     bld.install_files (bld.env.DATADIR + '/juce/icons', 'data/juce_icon.xpm')
