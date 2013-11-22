@@ -1,5 +1,5 @@
 # Waf artifacts
-./build
+build
 .lock-*
 .waf*
 
