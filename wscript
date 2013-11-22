@@ -183,22 +183,23 @@ def build (bld):
     if bld.env.BUILD_JUCE_MODULES:
         libs = juce.build_modular_libs (bld, library_modules, JUCE_VERSION)
         for lib in libs:
+            lib.target = lib.target + '-3'
             lib.includes += ['project/JuceLibraryCode']
 
         # Create pkg-config files for all built modules
         for m in library_modules:
             module = juce.get_module_info (bld, m)
-            slug = m.replace ('_', '-')
+            slug = m.replace ('_', '-') + '-3'
 
             bld (
                 features     = 'subst',
-                source       = 'juce.pc.in',
+                source       = 'juce-module.pc.in',
                 target       = slug + '.pc',
                 install_path = bld.env.LIBDIR + '/pkgconfig',
                 PREFIX       = bld.env.PREFIX,
                 INCLUDEDIR   = bld.env.INCLUDEDIR,
                 LIBDIR       = bld.env.LIBDIR,
-                DEPLIBS      = ' '.join (module.linuxLibs()) + ' -l' + m,
+                DEPLIBS      = ' '.join (module.linuxLibs()) + ' -l' + m+'-3',
                 REQUIRED     = ' '.join (module.requiredPackages()),
                 NAME         = module.name(),
                 DESCRIPTION  = module.description(),

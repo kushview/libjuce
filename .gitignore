@@ -19,3 +19,9 @@ build
 *.lai
 *.la
 *.a
+
+# Qt Creator files
+libjuce.creator*
+libjuce.files
+libjuce.includes
+libjuce.config

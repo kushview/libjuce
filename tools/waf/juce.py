@@ -23,14 +23,16 @@ def display_msg (conf, msg, status = None, color = None):
 
 @conf
 def check_juce (self):
-    self.start_msg ("Checking for JUCE")
+    '''this just checks that a version of juce exists'''
+
+    display_msg (self, "Checking for JUCE")
     mpath = self.env.JUCE_MODULES_PATH = self.options.juce_modules
 
-    if os.path.exists(mpath):
+    if os.path.exists (mpath):
         minfo = open(mpath + "/juce_core/juce_module_info")
         mdata = json.load(minfo)
         minfo.close()
-        self.end_msg(mdata["version"])
+        self.end_msg (mdata["version"])
     else:
         self.end_msg ("no")
 
@@ -51,6 +53,34 @@ def check_cxx11 (self, required=False):
         exit (1)
 
     self.line_just = line_just
+
+@conf
+def check_juce_modules (self, mods=None):
+    if mods == None: modules = '''
+        juce_audio_basics
+        juce_audio_devices
+        juce_audio_formats
+        juce_audio_processors
+        juce_audio_utils
+        juce_box2d
+        juce_core
+        juce_cryptography
+        juce_data_structures
+        juce_events
+        juce_graphics
+        juce_gui_basics
+        juce_gui_extra
+        juce_opengl
+        juce_video'''.split()
+    else: modules = mods
+
+    useflags = []
+
+    for mod in modules:
+        pkgslug = '%s-3' % mod.replace ('_', '-')
+        self.check_cfg (package=pkgslug, uselib_store=mod.upper(),  \
+                        args=['--libs', '--cflags'], mandatory=True)
+        useflags.append (mod.upper())
 
 def is_mac():
     return 'Darwin' in platform.system()
@@ -137,8 +167,10 @@ class ModuleInfo:
 
     def requiredPackages (self):
         pkgs = []
+
         for dep in self.dependencies():
-            pkgs.append (dep.replace ('_', '-'))
+            pkgs.append (dep.replace ('_', '-') + '-3')
+
         return pkgs
 
     def website (self):
@@ -272,6 +304,9 @@ def module_path (ctx):
 
 def available_modules (ctx):
     return os.listdir (module_path (ctx))
+
+
+
 
 class IntrojucerProject:
     data = None
