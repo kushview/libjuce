@@ -142,11 +142,11 @@ def make_desktop (bld, slug):
 
     if os.path.exists (src):
         bld (features = "subst",
-            source    = src,
-            target    = tgt,
-            name      = tgt,
-            JUCE_DATA = "%s/juce" % (bld.env.DATADIR),
-            install_path = bld.env.DATADIR + "/applications"
+             source    = src,
+             target    = tgt,
+             name      = tgt,
+             JUCE_DATA = "%s/juce" % (bld.env.DATADIR),
+             install_path = bld.env.DATADIR + "/applications"
         )
 
 library_modules = '''
@@ -175,6 +175,9 @@ def install_module_headers (bld, modules):
         bld.install_files (get_include_path (bld), \
                            bld.path.ant_glob ("src/modules/" + mod + "/**/*.h"), \
                            relative_trick=True, cwd=bld.path.find_dir ('src'))
+
+def install_misc_header(bld, h):
+    bld.install_files (get_include_path (bld), h)
 
 def build (bld):
     if bld.env.BUILD_JUCE_MODULES:
@@ -210,20 +213,20 @@ def build (bld):
         obj.install_path = None
 
         install_module_headers (bld, library_modules)
-        bld.install_files (get_include_path (bld), 'project/JuceLibraryCode/AppConfig.h')
-        bld.install_files (get_include_path (bld), 'project/JuceLibraryCode/JuceHeader.h')
-        bld.install_files (get_include_path (bld), 'build/libjuce_config.h')
+        install_misc_header(bld, 'project/JuceLibraryCode/AppConfig.h')
+        install_misc_header(bld, 'project/JuceLibraryCode/JuceHeader.h')
+        install_misc_header(bld, 'build/libjuce_config.h')
         bld.add_group()
 
     if bld.env.BUILD_INTROJUCER:
         introjucer = Project ('src/extras/Introjucer/Introjucer.jucer')
         obj = introjucer.compile (bld)
-        make_desktop (bld, 'Introjucer')
+        make_desktop (bld, 'introjucer')
 
     if bld.env.BUILD_JUCE_DEMO:
         demo = juce.IntrojucerProject ('src/extras/Demo/JuceDemo.jucer')
         obj = demo.compile (bld)
-        make_desktop (bld, 'JuceDemo')
+        make_desktop (bld, 'jucedemo')
 
     # Install common juce data
     bld.install_files (bld.env.DATADIR + '/juce/icons', 'data/juce_icon.xpm')

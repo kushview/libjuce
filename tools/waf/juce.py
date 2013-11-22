@@ -316,13 +316,17 @@ class IntrojucerProject:
     def getModules (self):
         mods = []
 
+        # have to iterate over tags MODULE and MODULES
+        # because some older projects might have one, the other
+        # or both
+
         for mod in self.root.iter ("MODULE"):
             if 'id' in mod.attrib:
                 mods += [mod.attrib ["id"]]
 
-        if len(mods) == 0:
-            for mod in self.root.iter ("MODULES"):
-                if 'id' in mod.attrib:
+        for mod in self.root.iter ("MODULES"):
+            if 'id' in mod.attrib:
+                if not mod.attrib ['id'] in mods:
                     mods += [mod.attrib ['id']]
 
         return mods
