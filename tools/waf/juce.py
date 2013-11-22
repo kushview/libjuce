@@ -368,7 +368,12 @@ class IntrojucerProject:
                         if "target" in i and i["target"] == "! xcode":
                             f = "%s/%s/%s" % (module_path, mod, i["file"])
                             f = os.path.relpath(unicodedata.normalize("NFKD", f).encode('ascii','ignore'))
-                            code.append(f)
+                            code.append (f)
+                        elif 'file' in i and not 'target' in i:
+                            f = "%s/%s/%s" % (module_path, mod, i["file"])
+                            f = os.path.relpath(unicodedata.normalize("NFKD", f).encode('ascii','ignore'))
+                            code.append (f)
+
 
         # Add binary data file if it exists
         bd = os.path.join (self.getLibraryCodePath(), 'BinaryData.cpp')
