@@ -25,3 +25,6 @@ libjuce.creator*
 libjuce.files
 libjuce.includes
 libjuce.config
+
+# Apple stuff
+.DS_Store
