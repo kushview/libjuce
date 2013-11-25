@@ -437,12 +437,18 @@ class IntrojucerProject:
         else:
             tag = 'CODEBLOCKS'
 
-        configs = self.root.find ('EXPORTFORMATS').find(tag).find('CONFIGURATIONS')
+        formats = self.root.find ('EXPORTFORMATS')
+        if None == formats: return 'JuceTarget'
+                
+        exporter = formats.find(tag)
+        if None == exporter: return 'JuceTarget'
+                
+        configs = formats.find(tag).find('CONFIGURATIONS')
         for config in configs:
             if config.attrib['name'] == configName:
                 return config.attrib['targetName']
 
-        return ''
+        return 'JuceTarget'
 
     def compile (self, waf_build, include_module_code=True):
 
