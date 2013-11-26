@@ -178,6 +178,8 @@ class ModuleInfo:
         
         if is_mac():
             pkgs += self.osxFrameworks()
+            if 'juce_graphics' in self.id():
+                pkgs.append ('juce-opengl-3') # this isn't provided in juce_module_info
 
         return list (set (pkgs))
     
