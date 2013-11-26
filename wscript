@@ -206,11 +206,12 @@ def build (bld):
             )
 
         # testing linkage against module libs
-        if juce.is_linux():
+        disable_test_app = True
+        if not disable_test_app:
             # TODO: make this work on other platforms
             testapp = Project ('extras/TestApp/TestApp.jucer')
             obj = testapp.compile (bld, False)
-            obj.use += testapp.getUseFlags()
+            obj.use += library_modules
             obj.includes += ['project/JuceLibraryCode']
             obj.install_path = None
 
