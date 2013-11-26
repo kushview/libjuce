@@ -192,7 +192,7 @@ class ModuleInfo:
     def linuxLibs (self):
         libs = []
         
-        if not is_linux() or not 'LinuxLibs' in self.data:
+        if None == self.data or not is_linux() or not 'LinuxLibs' in self.data:
             return libs
         
         for lib in self.data ['LinuxLibs'].split():
@@ -419,18 +419,25 @@ class IntrojucerProject:
         
         return mods
     
-    def getModulePath (self, module):
-        
+    def getDefaultExporterTag (self):
+        tag = 'INVALID'
+
         if is_mac():
             tag = 'XCODE_MAC'
         elif is_linux():
             tag = 'LINUX_MAKE'
+
+        return tag
+
+    def getModulePath (self, module):
         
-        paths = self.root.find('EXPORTFORMATS')
-        if paths: paths = paths.find(tag)
+        tag = self.getDefaultExporterTag()
+        paths = self.root.find ('EXPORTFORMATS')
+
+        if None != paths: paths = paths.find (tag)
         else: return ''
 
-        if paths: paths = paths.find('MODULEPATHS')
+        if None != paths: paths = paths.find('MODULEPATHS')
         else: return ''
 
         for path in paths.iter ('MODULEPATH'):
@@ -481,6 +488,11 @@ class IntrojucerProject:
                             f = '%s/%s' % (module_path, i["file"])
                             f = os.path.relpath(unicodedata.normalize("NFKD", f).encode('ascii','ignore'))
                             code.append (f)
+            else:
+                print "Module file doesn't exist: " + infofile
+                print "Project Dir: " + self.getProjectDir()
+                print "Module Path = " + module_path
+                exit(1)
         
         
         # Add binary data file if it exists
@@ -500,12 +512,7 @@ class IntrojucerProject:
     
     def getTargetName (self, configName):
         
-        if is_mac():
-            tag = 'XCODE_MAC'
-        elif is_linux():
-            tag = 'LINUX_MAKE'
-        else:
-            tag = 'CODEBLOCKS'
+        tag = self.getDefaultExporterTag()
 
         configs = self.root.find ('EXPORTFORMATS')
         if configs == None: return 'JuceTarget'
@@ -549,10 +556,11 @@ class IntrojucerProject:
         
         return list (set (flags))
     
-    def compile (self, waf_build, include_module_code=True):
+    def compile (self, wafBuild, includeModuleCode=True):
         
         features = 'cxx '
         type = self.getProjectType()
+
         if type == 'guiapp':
             features += 'cxxprogram'
         elif type == 'dll':
@@ -565,10 +573,9 @@ class IntrojucerProject:
         includes  = []
         linkflags = []
         useflags  = []
-        
-        
+
         # Do special things when modules are included
-        if include_module_code:
+        if includeModuleCode:
             code += self.getLibraryCode()
             includes += [self.getLibraryCodePath()]
             for mod in self.getModules():
@@ -585,17 +592,18 @@ class IntrojucerProject:
         if '' == target:
             target = 'a.out'
         
-        object = waf_build (
-                            features  = features,
-                            source    = code,
-                            includes  = includes,
-                            linkflags = linkflags,
-                            name      = self.getName(),
-                            target    = target,
-                            use       = useflags
-                            )
+        object = wafBuild (
+            features  = features,
+            source    = code,
+            includes  = includes,
+            linkflags = linkflags,
+            name      = self.getName(),
+            target    = target,
+            use       = useflags
+        )
         
         return object
+
 
 from waflib import TaskGen
 @TaskGen.extension ('.mm')

@@ -206,19 +206,40 @@ def build (bld):
             )
 
         # testing linkage against module libs
-        disable_test_app = True
+        disable_test_app = False
         if not disable_test_app:
-            # TODO: make this work on other platforms
             testapp = Project ('extras/TestApp/TestApp.jucer')
-            obj = testapp.compile (bld, False)
-            obj.use += library_modules
-            obj.includes += ['project/JuceLibraryCode']
-            obj.install_path = None
+
+            # fake the usage of a pkg-config'd juce setup
+            if juce.is_linux():
+                juce_useflags = ['X11', 'XEXT', 'ALSA', 'GL', 'FREETYPE2']
+            elif juce.is_mac():
+                juce_useflags = testapp.getUseFlags()
+            else:
+                juce_useflags = []
+
+            for mod in library_modules:
+                pkgslug = '%s-3' % mod.replace ('_', '-')
+                juce_useflags.append (pkgslug)
+
+
+            obj = bld.program (
+                source   = testapp.getProjectCode(),
+                includes = ['project/JuceLibraryCode'],
+                name     = 'TestApp',
+                target   = 'testapp',
+                use      = juce_useflags,
+                install_path = None
+            )
+
+            if juce.is_mac():
+                obj.target  = 'Applications/TestApp'
+                obj.mac_app = True
 
         install_module_headers (bld, library_modules)
-        install_misc_header(bld, 'project/JuceLibraryCode/AppConfig.h')
-        install_misc_header(bld, 'project/JuceLibraryCode/JuceHeader.h')
-        install_misc_header(bld, 'build/libjuce_config.h')
+        install_misc_header (bld, 'project/JuceLibraryCode/AppConfig.h')
+        install_misc_header (bld, 'project/JuceLibraryCode/JuceHeader.h')
+        install_misc_header (bld, 'build/libjuce_config.h')
         bld.add_group()
 
     if bld.env.BUILD_INTROJUCER:
