@@ -28,8 +28,8 @@
         <MODULEPATH id="juce_box2d" path="../src/modules"/>
         <MODULEPATH id="juce_audio_utils" path="../src/modules"/>
         <MODULEPATH id="juce_cryptography" path="../src/modules"/>
-        <MODULEPATH id="juce_opengl" path="../src/modules"/>
         <MODULEPATH id="juce_video" path="../src/modules"/>
+        <MODULEPATH id="juce_opengl" path="../src/modules"/>
       </MODULEPATHS>
     </LINUX_MAKE>
     <XCODE_MAC targetFolder="Builds/MacOSX">
@@ -41,7 +41,6 @@
       </CONFIGURATIONS>
       <MODULEPATHS>
         <MODULEPATH id="juce_video" path="../src/modules"/>
-        <MODULEPATH id="juce_opengl" path="../src/modules"/>
         <MODULEPATH id="juce_gui_extra" path="../src/modules"/>
         <MODULEPATH id="juce_gui_basics" path="../src/modules"/>
         <MODULEPATH id="juce_graphics" path="../src/modules"/>
@@ -55,6 +54,7 @@
         <MODULEPATH id="juce_audio_formats" path="../src/modules"/>
         <MODULEPATH id="juce_audio_devices" path="../src/modules"/>
         <MODULEPATH id="juce_audio_basics" path="../src/modules"/>
+        <MODULEPATH id="juce_opengl" path="../src/modules"/>
       </MODULEPATHS>
     </XCODE_MAC>
   </EXPORTFORMATS>

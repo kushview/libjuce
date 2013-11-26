@@ -157,7 +157,7 @@ class ModuleInfo:
         return self.data ['description']
     
     def dependencies (self):
-        if not 'dependencies' in self.data:
+        if None == self.data or not 'dependencies' in self.data:
             return []
         
         if not len(self.data ['dependencies']) > 0:
@@ -165,7 +165,7 @@ class ModuleInfo:
         
         deps = []
         for dep in self.data ['dependencies']:
-            if None != dep['id']:
+            if None != dep ['id']:
                 deps.append (dep ['id'])
         
         return deps
@@ -178,8 +178,6 @@ class ModuleInfo:
         
         if is_mac():
             pkgs += self.osxFrameworks()
-            if 'juce_graphics' in self.id():
-                pkgs.append ('juce-opengl-3') # this isn't provided in juce_module_info
 
         return list (set (pkgs))
     
@@ -212,7 +210,7 @@ class ModuleInfo:
             requires'''
         fwks = []
         
-        if not 'OSXFrameworks' in self.data:
+        if None == self.data or not is_mac() or not 'OSXFrameworks' in self.data:
             return fwks
         
         for fw in self.data['OSXFrameworks'].split():
@@ -309,23 +307,41 @@ def build_modular_libs (bld, mods, vnum=''):
         a list of waf bld objects in case further setup is required'''
     libs = []
     mext = extension()
-
-    for mod in mods:
+    opengl_wanted = 'juce_opengl' in mods;
+    
+    for mod in mods:        
         info = get_module_info (bld, mod)
         src  = find (bld, mod + mext)
         slug = mod.replace('_', '-')
+        use  = info.requiredPackages()
+        
+        # this is a workaround that forces opengl to always
+        # compile with gui_basics.
+        '''
+        if is_mac() and opengl_wanted:
+            if mod == 'juce_gui_basics':
+                src += find (bld, 'juce_opengl.mm') + \
+                       find (bld, 'juce_graphics.mm')
+                use += ['OPEN_GL']
+            if mod == 'juce_opengl' or mod == 'juce_graphics':
+                continue
+        '''
+        
         obj = bld (
             features  = "cxx cxxshlib",
-            source    = src,
+            source    = list (set (src)),
             name      = '%s-3' % slug,
             target    = '%s-3' % mod,
-            use       = info.requiredPackages(),
+            use       = list (set (use)),
             includes  = [],
             linkflags = info.linkFlags()
         )
+    
         if len(vnum) > 0:
             obj.vnum = vnum
+                
         libs += [obj]
+
     return libs
 
 def create_unified_lib (bld, tgt, mods, feats="cxx cxxshlib"):
@@ -548,9 +564,10 @@ class IntrojucerProject:
             if is_linux():
                 func = None
             elif is_mac():
-                func = info.osxFrameworks
+                func = info.requiredPackages
             elif is_win32():
                 func = None
+                    
             if None != func:
                 flags += func()
         
@@ -580,12 +597,14 @@ class IntrojucerProject:
             includes += [self.getLibraryCodePath()]
             for mod in self.getModules():
                 info = self.getModuleInfo (mod)
+                linkFlagsFunc = None
+                
                 if is_linux():
-                    linkFlagsFunc = info.linuxLibs
-                else:
-                    linkFlagsFunc = None
-                if None != linkFlagsFunc:
-                    linkflags += linkFlagsFunc()
+                    linkflags += info.linuxLibs()
+                elif is_mac():
+                    useflags += info.osxFrameworks()
+                else: pass
+
         
         # Figure a target name
         target = self.getTargetName ("Debug")
@@ -601,7 +620,12 @@ class IntrojucerProject:
             target    = target,
             use       = useflags
         )
-        
+
+        # do mac bundling if applicable
+        if is_mac():
+            if type == 'guiapp':
+                object.mac_app = True
+
         return object
 
 

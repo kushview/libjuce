@@ -39,12 +39,12 @@ out = 'build'
 def options(opts):
     opts.load ('compiler_c compiler_cxx juce')
 
-    opts.add_option('--debug', default=False, action="store_true", \
-        dest="debug", help="Compile debuggable libraries [ Default: False ]")
     opts.add_option('--introjucer', default=False, action="store_true", \
         dest="introjucer", help="Disable Jucer Builds [ Default: False ]")
     opts.add_option('--juce-demo', default=False, action="store_true", \
         dest="juce_demo", help="Build the JUCE Demo [ Default: False ]")
+    opts.add_option('--no-juce-libs', default=True, action="store_false", \
+        dest="no_juce_libs", help="Don't compile modules as shared libraries")
     opts.add_option('--static', default=False, action="store_true", \
         dest="static", help="Build Static Libraries [ Default: False ]")
     opts.add_option('--ziptype', default='gz', type='string', \
@@ -84,7 +84,7 @@ def configure(conf):
     conf.env.BUILD_DEBUGGABLE   = conf.options.debug
     conf.env.BUILD_INTROJUCER   = conf.options.introjucer
     conf.env.BUILD_JUCE_DEMO    = conf.options.juce_demo
-    conf.env.BUILD_JUCE_MODULES = True
+    conf.env.BUILD_JUCE_MODULES = conf.options.no_juce_libs
     conf.env.BUILD_STATIC       = conf.options.static
 
     if juce.is_mac():
@@ -149,6 +149,7 @@ def make_desktop (bld, slug):
              install_path = bld.env.DATADIR + "/applications"
         )
 
+
 library_modules = '''
     juce_audio_basics
     juce_audio_devices
@@ -180,7 +181,7 @@ def install_misc_header(bld, h):
     bld.install_files (get_include_path (bld), h)
 
 def build (bld):
-    if bld.env.BUILD_JUCE_MODULES:
+    if bld.env.BUILD_JUCE_MODULES:            
         libs = juce.build_modular_libs (bld, library_modules, JUCE_VERSION)
         for lib in libs:
             lib.includes += ['project/JuceLibraryCode']
@@ -214,27 +215,27 @@ def build (bld):
             if juce.is_linux():
                 juce_useflags = ['X11', 'XEXT', 'ALSA', 'GL', 'FREETYPE2']
             elif juce.is_mac():
-                juce_useflags = testapp.getUseFlags()
+                juce_useflags = ['COCOA', 'IO_KIT']
             else:
                 juce_useflags = []
 
             for mod in library_modules:
                 pkgslug = '%s-3' % mod.replace ('_', '-')
                 juce_useflags.append (pkgslug)
-
-
+            
             obj = bld.program (
                 source   = testapp.getProjectCode(),
                 includes = ['project/JuceLibraryCode'],
                 name     = 'TestApp',
                 target   = 'testapp',
                 use      = juce_useflags,
-                install_path = None
+                install_path = None,
             )
 
             if juce.is_mac():
                 obj.target  = 'Applications/TestApp'
                 obj.mac_app = True
+                obj.install_path = os.getcwd() + '/build/Applications' # workaround
 
         install_module_headers (bld, library_modules)
         install_misc_header (bld, 'project/JuceLibraryCode/AppConfig.h')
