@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<JUCERPROJECT id="Sy5MuQ" name="libjuce" projectType="dll" version="2.1.8"
+<JUCERPROJECT id="Sy5MuQ" name="libjuce" projectType="dll" version="3.0.0"
               bundleIdentifier="org.element-project.libjuce" includeBinaryInAppConfig="1"
               jucerVersion="3.1.0" userNotes="">
   <MAINGROUP id="adaLtz" name="libjuce">
@@ -32,6 +32,31 @@
         <MODULEPATH id="juce_video" path="../src/modules"/>
       </MODULEPATHS>
     </LINUX_MAKE>
+    <XCODE_MAC targetFolder="Builds/MacOSX">
+      <CONFIGURATIONS>
+        <CONFIGURATION name="Debug" osxSDK="default" osxCompatibility="default" osxArchitecture="default"
+                       isDebug="1" optimisation="1" targetName="libjuce"/>
+        <CONFIGURATION name="Release" osxSDK="default" osxCompatibility="default" osxArchitecture="default"
+                       isDebug="0" optimisation="2" targetName="libjuce"/>
+      </CONFIGURATIONS>
+      <MODULEPATHS>
+        <MODULEPATH id="juce_video" path="../src/modules"/>
+        <MODULEPATH id="juce_opengl" path="../src/modules"/>
+        <MODULEPATH id="juce_gui_extra" path="../src/modules"/>
+        <MODULEPATH id="juce_gui_basics" path="../src/modules"/>
+        <MODULEPATH id="juce_graphics" path="../src/modules"/>
+        <MODULEPATH id="juce_events" path="../src/modules"/>
+        <MODULEPATH id="juce_data_structures" path="../src/modules"/>
+        <MODULEPATH id="juce_cryptography" path="../src/modules"/>
+        <MODULEPATH id="juce_core" path="../src/modules"/>
+        <MODULEPATH id="juce_box2d" path="../src/modules"/>
+        <MODULEPATH id="juce_audio_utils" path="../src/modules"/>
+        <MODULEPATH id="juce_audio_processors" path="../src/modules"/>
+        <MODULEPATH id="juce_audio_formats" path="../src/modules"/>
+        <MODULEPATH id="juce_audio_devices" path="../src/modules"/>
+        <MODULEPATH id="juce_audio_basics" path="../src/modules"/>
+      </MODULEPATHS>
+    </XCODE_MAC>
   </EXPORTFORMATS>
   <MODULES>
     <MODULES id="juce_audio_basics" showAllCode="1" useLocalCopy="0"/>

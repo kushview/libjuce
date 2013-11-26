@@ -39,8 +39,8 @@
 namespace ProjectInfo
 {
     const char* const  projectName    = "libjuce";
-    const char* const  versionString  = "2.1.8";
-    const int          versionNumber  = 0x20108;
+    const char* const  versionString  = "3.0.0";
+    const int          versionNumber  = 0x30000;
 }
 
 #endif   // __APPHEADERFILE_SY5MUQ__

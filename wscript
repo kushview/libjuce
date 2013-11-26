@@ -183,7 +183,6 @@ def build (bld):
     if bld.env.BUILD_JUCE_MODULES:
         libs = juce.build_modular_libs (bld, library_modules, JUCE_VERSION)
         for lib in libs:
-            lib.target = lib.target + '-3'
             lib.includes += ['project/JuceLibraryCode']
 
         # Create pkg-config files for all built modules
@@ -207,11 +206,13 @@ def build (bld):
             )
 
         # testing linkage against module libs
-        testapp = Project ('extras/TestApp/TestApp.jucer')
-        obj = testapp.compile (bld, False)
-        obj.use += library_modules
-        obj.includes += ['project/JuceLibraryCode']
-        obj.install_path = None
+        if juce.is_linux():
+            # TODO: make this work on other platforms
+            testapp = Project ('extras/TestApp/TestApp.jucer')
+            obj = testapp.compile (bld, False)
+            obj.use += testapp.getUseFlags()
+            obj.includes += ['project/JuceLibraryCode']
+            obj.install_path = None
 
         install_module_headers (bld, library_modules)
         install_misc_header(bld, 'project/JuceLibraryCode/AppConfig.h')
