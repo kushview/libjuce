@@ -28,3 +28,5 @@ libjuce.config
 
 # Apple stuff
 .DS_Store
+*.xcworkspace
+xcuserdata/
