@@ -538,7 +538,6 @@ class IntrojucerProject:
 
         configs = configs.find('CONFIGURATIONS')
         for config in configs:
-            print config.attrib['name']
             if config.attrib['name'] == configName:
                 return config.attrib['targetName']
         
@@ -607,7 +606,7 @@ class IntrojucerProject:
 
         
         # Figure a target name
-        target = self.getTargetName ("Debug")
+        target = self.getTargetName ('Debug')
         if '' == target:
             target = 'a.out'
         
