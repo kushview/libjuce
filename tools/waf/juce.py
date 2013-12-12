@@ -378,12 +378,14 @@ def available_modules (ctx):
 
 
 class IntrojucerProject:
+    ctx  = None
     data = None
     proj = None
     root = None
     
-    def __init__ (self, project):
+    def __init__ (self, context, project):
         if os.path.exists (project):
+            self.ctx = context
             self.proj = project
             data = ET.parse (self.proj)
             
@@ -526,7 +528,12 @@ class IntrojucerProject:
         bd = os.path.join (self.getLibraryCodePath(), 'BinaryData.cpp')
         if os.path.exists(bd): code.append (bd)
         
-        return code
+        library_code = []
+        depth = os.path.relpath (self.ctx.launch_dir, self.ctx.path.abspath())
+        for c in code:
+            library_code.append (os.path.join (depth, c))
+        
+        return library_code
     
     def getLibraryCodePath (self):
         return os.path.join (self.getProjectDir(), "JuceLibraryCode")
