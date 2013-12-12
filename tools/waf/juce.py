@@ -394,7 +394,7 @@ class IntrojucerProject:
                 self.data = None
     
     def isValid (self):
-        return self.data != None and self.name != None
+        return self.data != None and self.proj != None
     
     def getProperty (self, prop):
         if self.isValid(): return self.root.attrib [prop]
