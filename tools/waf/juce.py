@@ -397,7 +397,8 @@ class IntrojucerProject:
         return self.data != None and self.name != None
     
     def getProperty (self, prop):
-        return self.root.attrib [prop]
+        if self.isValid(): return self.root.attrib [prop]
+        else: return ''
     
     def getId (self):
         return self.getProperty ("id")
@@ -418,6 +419,10 @@ class IntrojucerProject:
         return self.getProperty ("bundleIdentifier")
     
     def getModules (self):
+        
+        if None == self.root:
+            return []
+        
         mods = []
         
         # have to iterate over tags MODULE and MODULES
@@ -463,10 +468,16 @@ class IntrojucerProject:
         return ''
     
     def getProjectDir(self):
-        return os.path.relpath (os.path.join (self.proj, ".."))
+        if self.isValid():
+            return os.path.relpath (os.path.join (self.proj, ".."))
+        else: return ''
     
     def getProjectCode(self):
         code = []
+        
+        if None == self.root:
+            return code
+        
         for c in self.root.iter ("FILE"):
             if "compile" in c.attrib and c.attrib["compile"] == "1":
                 f = "%s" % (c.attrib ["file"])
