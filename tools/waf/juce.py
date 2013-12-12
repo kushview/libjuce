@@ -479,12 +479,16 @@ class IntrojucerProject:
         
         if None == self.root:
             return code
+    
+        join  = os.path.join
+        depth = os.path.relpath (self.ctx.launch_dir, self.ctx.path.abspath())
         
         for c in self.root.iter ("FILE"):
             if "compile" in c.attrib and c.attrib["compile"] == "1":
                 f = "%s" % (c.attrib ["file"])
-                parent = os.path.join (self.proj, "..")
-                code.append (os.path.join (parent, os.path.relpath (f)))
+                parent = join (self.proj, "..")
+                code.append (join (depth, join (parent, os.path.relpath (f))))
+        
         return code
     
     def getLibraryCode (self):
@@ -591,7 +595,7 @@ class IntrojucerProject:
         return list (set (flags))
     
     def compile (self, wafBuild, includeModuleCode=True):
-        
+
         features = 'cxx '
         type = self.getProjectType()
 
@@ -608,10 +612,12 @@ class IntrojucerProject:
         linkflags = []
         useflags  = []
 
+        depth = os.path.relpath (self.ctx.launch_dir, self.ctx.path.abspath())
+    
         # Do special things when modules are included
         if includeModuleCode:
             code += self.getLibraryCode()
-            includes += [self.getLibraryCodePath()]
+            includes += [os.path.join (depth, self.getLibraryCodePath())]
             for mod in self.getModules():
                 info = self.getModuleInfo (mod)
                 linkFlagsFunc = None

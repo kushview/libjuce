@@ -244,17 +244,20 @@ def build (bld):
         bld.add_group()
 
     if bld.env.BUILD_INTROJUCER:
-        introjucer = Project ('src/extras/Introjucer/Introjucer.jucer')
+        node = bld.path.find_resource ('src/extras/Introjucer/Introjucer.jucer')
+        introjucer = juce.IntrojucerProject (bld, node.relpath())
         obj = introjucer.compile (bld)
         make_desktop (bld, 'Introjucer')
 
     if bld.env.BUILD_JUCE_DEMO:
-        demo = juce.IntrojucerProject ('src/extras/Demo/JuceDemo.jucer')
+        node = bld.path.find_resource ('src/extras/Demo/JuceDemo.jucer')
+        demo = juce.IntrojucerProject (bld, node.relpath())
         obj = demo.compile (bld)
         make_desktop (bld, 'JuceDemo')
 
-    # Install common juce data
-    bld.install_files (bld.env.DATADIR + '/juce/icons', 'data/juce_icon.xpm')
+    # Install common juce data on Linux systems
+    if juce.is_linux():
+        bld.install_files (bld.env.DATADIR + '/juce/icons', 'data/juce_icon.xpm')
 
 def dist(ctx):
     z = ctx.options.ziptype
