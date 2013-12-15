@@ -502,7 +502,7 @@ class IntrojucerProject:
             
             infofile = os.path.join (module_path, 'juce_module_info')
             obj = ModuleInfo (infofile)
-            
+            print infofile
             if os.path.exists (infofile):
                 res = open (infofile)
                 data = json.load (res)
