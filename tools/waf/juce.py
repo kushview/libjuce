@@ -138,8 +138,9 @@ class ModuleInfo:
         if os.path.exists (juce_info_file):
             self.infofile = juce_info_file
             res = open (self.infofile)
-            self.data = json.load (res)
-            res.close()
+            if None != res:
+                self.data = json.load (res)
+                res.close()
     
     def isValid (self):
         return self.data != None and self.infofile != None
@@ -480,14 +481,17 @@ class IntrojucerProject:
         if None == self.root:
             return code
     
-        join  = os.path.join
-        depth = os.path.relpath (self.ctx.launch_dir, self.ctx.path.abspath())
+        join   = os.path.join
+        depth  = os.path.relpath (self.ctx.launch_dir, self.ctx.path.abspath())
+        parent = os.path.dirname (self.proj)
+        parent = os.path.relpath (parent, self.ctx.launch_dir)
         
         for c in self.root.iter ("FILE"):
             if "compile" in c.attrib and c.attrib["compile"] == "1":
                 f = "%s" % (c.attrib ["file"])
-                parent = join (self.proj, "..")
-                code.append (join (depth, join (parent, os.path.relpath (f))))
+                #parent = join (self.proj, "..")
+                source = join (depth, join (parent, os.path.relpath (f)))
+                code.append (source)
         
         return code
     
@@ -502,7 +506,7 @@ class IntrojucerProject:
             
             infofile = os.path.join (module_path, 'juce_module_info')
             obj = ModuleInfo (infofile)
-            print infofile
+
             if os.path.exists (infofile):
                 res = open (infofile)
                 data = json.load (res)
