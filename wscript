@@ -19,8 +19,8 @@ sys.path.insert(0, "tools/waf")
 import juce
 from juce import IntrojucerProject as Project
 
-JUCE_VERSION  ="3.0.0"
-EXTRA_VERSION =""
+JUCE_VERSION  = '3.0.0'
+EXTRA_VERSION = ''
 
 LIBJUCE_VERSION=JUCE_VERSION+EXTRA_VERSION
 LIBJUCE_MAJOR_VERSION=3
@@ -209,7 +209,7 @@ def build (bld):
         # testing linkage against module libs
         disable_test_app = False
         if not disable_test_app:
-            testapp = Project ('extras/TestApp/TestApp.jucer')
+            testapp = Project (bld, 'extras/TestApp/TestApp.jucer')
 
             # fake the usage of a pkg-config'd juce setup
             if juce.is_linux():
