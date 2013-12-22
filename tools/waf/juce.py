@@ -642,10 +642,12 @@ class IntrojucerProject:
             features  = features,
             source    = code,
             includes  = includes,
-            linkflags = linkflags,
             name      = self.getName(),
             target    = target,
-            use       = useflags
+            use       = useflags,
+            cflags    = [],
+            cxxflags  = [],
+            linkflags = linkflags,
         )
 
         # do mac bundling if applicable
