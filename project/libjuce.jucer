@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <JUCERPROJECT id="Sy5MuQ" name="libjuce" projectType="dll" version="3.0.0"
-              bundleIdentifier="org.element-project.libjuce" includeBinaryInAppConfig="1"
+              bundleIdentifier="org.mfisher31.libjuce" includeBinaryInAppConfig="1"
               jucerVersion="3.1.0" userNotes="">
   <MAINGROUP id="adaLtz" name="libjuce">
     <FILE id="tMWp9W" name="libjuce.cpp" compile="1" resource="0" file="Source/libjuce.cpp"/>

@@ -1,3 +1,5 @@
+project/Builds
+
 # Waf artifacts
 build
 .lock-*
