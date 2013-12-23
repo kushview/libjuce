@@ -181,7 +181,7 @@ def install_misc_header(bld, h):
     bld.install_files (get_include_path (bld), h)
 
 def build (bld):
-    if bld.env.BUILD_JUCE_MODULES:            
+    if bld.env.BUILD_JUCE_MODULES:
         libs = juce.build_modular_libs (bld, library_modules, JUCE_VERSION)
         for lib in libs:
             lib.includes += ['project/JuceLibraryCode']
