@@ -19,7 +19,7 @@ sys.path.insert(0, "tools/waf")
 import juce
 from juce import IntrojucerProject as Project
 
-JUCE_VERSION  = '3.0.0'
+JUCE_VERSION  = '3.0.1'
 EXTRA_VERSION = ''
 
 LIBJUCE_VERSION=JUCE_VERSION+EXTRA_VERSION
