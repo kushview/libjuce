@@ -19,13 +19,13 @@ sys.path.insert(0, "tools/waf")
 import juce
 from juce import IntrojucerProject as Project
 
-JUCE_VERSION  = '3.0.1'
+JUCE_VERSION  = '3.0.5'
 EXTRA_VERSION = ''
 
 LIBJUCE_VERSION=JUCE_VERSION+EXTRA_VERSION
 LIBJUCE_MAJOR_VERSION=3
 LIBJUCE_MINOR_VERSION=0
-LIBJUCE_MICRO_VERSION=0
+LIBJUCE_MICRO_VERSION=5
 LIBJUCE_EXTRA_VERSION=EXTRA_VERSION
 
 # For waf dist
@@ -247,6 +247,7 @@ def build (bld):
         node = bld.path.find_resource ('src/extras/Introjucer/Introjucer.jucer')
         introjucer = juce.IntrojucerProject (bld, node.relpath())
         obj = introjucer.compile (bld)
+        obj.use += ['FREETYPE2']
         make_desktop (bld, 'Introjucer')
 
     if bld.env.BUILD_JUCE_DEMO:
