@@ -19,13 +19,13 @@ sys.path.insert(0, "tools/waf")
 import juce
 from juce import IntrojucerProject as Project
 
-JUCE_VERSION  = '3.0.5'
+JUCE_VERSION  = '3.2.0'
 EXTRA_VERSION = ''
 
 LIBJUCE_VERSION=JUCE_VERSION+EXTRA_VERSION
 LIBJUCE_MAJOR_VERSION=3
-LIBJUCE_MINOR_VERSION=0
-LIBJUCE_MICRO_VERSION=5
+LIBJUCE_MINOR_VERSION=2
+LIBJUCE_MICRO_VERSION=0
 LIBJUCE_EXTRA_VERSION=EXTRA_VERSION
 
 # For waf dist
@@ -222,7 +222,7 @@ def build (bld):
             for mod in library_modules:
                 pkgslug = '%s-3' % mod.replace ('_', '-')
                 juce_useflags.append (pkgslug)
-            
+
             obj = bld.program (
                 source   = testapp.getProjectCode(),
                 includes = ['project/JuceLibraryCode'],

@@ -319,6 +319,9 @@ def build_modular_libs (bld, mods, vnum=''):
         slug = mod.replace('_', '-')
         use  = info.requiredPackages()
 
+        if is_linux() and mod == 'juce_graphics':
+            use += ['FREETYPE2']
+        
         # this is a workaround that forces opengl to always
         # compile with gui_basics.
         '''
