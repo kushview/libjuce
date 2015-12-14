@@ -111,6 +111,8 @@ def configure(conf):
     if juce.is_mac():
         pass
     elif juce.is_linux():
+        conf.check_cfg (package='libddcurl', uselib_store='CURLX', args=['--libs', '--cflags'], mandatory=False)
+
         conf.check_cfg (package='libcurl', uselib_store='CURL', args=['--libs', '--cflags'], mandatory=False)
         conf.check_cfg (package='x11',  uselib_store='X11',  args=['--libs', '--cflags'], mandatory=False)
         conf.check_cfg (package='xext', uselib_store='XEXT', args=['--libs', '--cflags'], mandatory=False)
@@ -119,14 +121,14 @@ def configure(conf):
         conf.check_cfg (package='jack', uselib_store='JACK', args=['--libs', '--cflags'], mandatory=False)
         conf.check_cfg (package='freetype2', uselib_store='FREETYPE2', args=['--libs', '--cflags'], mandatory=True)
 
-
-
     elif juce.is_windows():
         pass
 
     conf.write_config_header ("libjuce_config.h")
 
-    conf.define('JUCE_USE_CURL', conf.is_defined('HAVE_CURL'))
+    conf.define('JUCE_USE_CURL', len(conf.env.LIB_CURL) > 0)
+    conf.define('JUCE_USE_ALSA', len(conf.env.LIB_ALSA) > 0)
+    conf.define('JUCE_USE_JACK', len(conf.env.LIB_JACK) > 0)
     for mod in library_modules:
         conf.define('JUCE_MODULE_AVAILABLE_%s' % mod, 1)
     conf.write_config_header ('modules/config.h')
@@ -216,11 +218,7 @@ def build_modules(bld):
     for m in library_modules:
         module = juce.get_module_info (bld, m)
         slug = module_slug(m, is_debug)
-        required_packages = ' '.join (module.requiredPackages())
-        if is_debug:
-            lhs = '-%s' % JUCE_MAJOR_VERSION
-            rhs = '-debug' + lhs
-            required_packages = required_packages.replace(lhs, rhs)
+        required_packages = ' '.join (module.requiredPackages (is_debug))
 
         pcobj = bld (
             features     = 'subst',
@@ -240,8 +238,17 @@ def build_modules(bld):
 
     if bld.env.INSTALL_HEADERS:
         install_module_headers (bld, library_modules)
-        install_misc_header (bld, 'juce/juce.h')
+        for header in ['juce/juce.h', 'juce/AppConfig.h', 'juce/JuceHeader.h']:
+            install_misc_header (bld, header)
         install_misc_header (bld, 'build/modules/config.h', '/modules')
+
+def build_project (project, name):
+    node = bld.path.find_resource (project)
+    introjucer = juce.IntrojucerProject (bld, node.relpath())
+    obj = introjucer.compile (bld)
+    obj.use += ['FREETYPE2', 'CURL']
+    make_desktop (bld, name)
+    return obj
 
 def build (bld):
     bld.env.INSTALL_HEADERS = bld.options.install_headers
@@ -281,14 +288,6 @@ def build (bld):
             obj.install_path = os.getcwd() + '/build/Applications' # workaround
 
         bld.add_group()
-
-    def build_project (project, name):
-        node = bld.path.find_resource (project)
-        introjucer = juce.IntrojucerProject (bld, node.relpath())
-        obj = introjucer.compile (bld)
-        obj.use += ['FREETYPE2', 'CURL']
-        make_desktop (bld, name)
-        return obj
 
     if bld.env.BUILD_INTROJUCER:
         build_project ('src/extras/Introjucer/Introjucer.jucer', 'Introjucer')

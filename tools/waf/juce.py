@@ -182,11 +182,14 @@ class ModuleInfo:
 
         return deps
 
-    def requiredPackages (self):
+    def requiredPackages (self, debug=False):
         pkgs = []
 
         for dep in self.dependencies():
-            pkgs.append (dep.replace ('_', '-') + '-' + self.version()[:1])
+            pkg = dep.replace ('_', '-')
+            mv = self.version()[:1]
+            pkg += '-debug-%s' % (mv) if debug else '-%s' % (mv)
+            pkgs.append (pkg)
 
         if is_mac():
             pkgs += self.osxFrameworks()
