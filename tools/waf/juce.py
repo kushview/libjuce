@@ -306,7 +306,7 @@ def find (ctx, pattern):
     pattern = '%s/**/%s' % (ctx.env.JUCE_MODULE_PATH, pattern)
     return ctx.path.ant_glob (pattern)
 
-def build_modular_libs (bld, mods, vnum=''):
+def build_modular_libs (bld, mods, vnum='', postfix=''):
     '''compile the passed modules into individual targets. returns
         a list of waf bld objects in case further setup is required'''
     libs = []
@@ -321,7 +321,7 @@ def build_modular_libs (bld, mods, vnum=''):
 
         if is_linux() and mod == 'juce_graphics':
             use += ['FREETYPE2']
-        
+
         # this is a workaround that forces opengl to always
         # compile with gui_basics.
         '''
@@ -337,8 +337,8 @@ def build_modular_libs (bld, mods, vnum=''):
         obj = bld (
             features  = "cxx cxxshlib",
             source    = list (set (src)),
-            name      = '%s-3' % slug,
-            target    = '%s-3' % mod,
+            name      = '%s-3' % (slug + postfix.replace('_', '-')),
+            target    = '%s-3' % (mod + postfix),
             use       = list (set (use)),
             includes  = [],
             linkflags = info.linkFlags()
