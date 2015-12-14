@@ -30,6 +30,6 @@
 #ifndef LIBJUCE_JUCE_HEADER_H
 #define LIBJUCE_JUCE_HEADER_H
 
-#include "juce.h"
+#include "./juce.h"
 
 #endif

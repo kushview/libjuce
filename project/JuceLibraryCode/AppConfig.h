@@ -16,7 +16,7 @@
 
 //==============================================================================
 // [BEGIN_USER_CODE_SECTION]
-#include "modules/config.h"
+ #error This generated header is to be used for reference only.
 // [END_USER_CODE_SECTION]
 
 //==============================================================================

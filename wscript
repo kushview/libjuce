@@ -129,6 +129,7 @@ def configure(conf):
     conf.define('JUCE_USE_CURL', len(conf.env.LIB_CURL) > 0)
     conf.define('JUCE_USE_ALSA', len(conf.env.LIB_ALSA) > 0)
     conf.define('JUCE_USE_JACK', len(conf.env.LIB_JACK) > 0)
+    conf.define('JUCE_STANDALONE_APPLICATION', 0)
     for mod in library_modules:
         conf.define('JUCE_MODULE_AVAILABLE_%s' % mod, 1)
     conf.write_config_header ('modules/config.h')
@@ -211,7 +212,7 @@ def build_modules(bld):
     postfix = '_debug' if bld.env.BUILD_DEBUGGABLE else ''
     libs = juce.build_modular_libs (bld, library_modules, JUCE_VERSION, postfix)
     for lib in libs:
-        lib.includes += ['project/JuceLibraryCode']
+        lib.includes += ['juce', 'src']
 
     # Create pkg-config files for all built modules
     is_debug = bld.env.BUILD_DEBUGGABLE

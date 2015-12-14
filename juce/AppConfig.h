@@ -30,6 +30,6 @@
 #ifndef LIBJUCE_APP_CONFIG_H
 #define LIBJUCE_APP_CONFIG_H
 
-#include "modules/config.h"
+#include "./modules/config.h"
 
 #endif
