@@ -2,9 +2,9 @@
 
 <JUCERPROJECT id="Sy5MuQ" name="libjuce" projectType="dll" version="3.0.0"
               bundleIdentifier="org.mfisher31.libjuce" includeBinaryInAppConfig="1"
-              jucerVersion="3.1.0" userNotes="">
+              jucerVersion="4.0.2" userNotes="">
   <MAINGROUP id="adaLtz" name="libjuce">
-    <FILE id="tMWp9W" name="libjuce.cpp" compile="1" resource="0" file="Source/libjuce.cpp"/>
+    <FILE id="ISlcW4" name="juce.h" compile="0" resource="0" file="../juce/juce.h"/>
   </MAINGROUP>
   <EXPORTFORMATS>
     <LINUX_MAKE targetFolder="Builds/Linux">

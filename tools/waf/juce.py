@@ -60,7 +60,7 @@ def check_cxx11 (self, required=False):
     self.line_just = line_just
 
 @conf
-def check_juce_modules (self, mods=None):
+def check_juce_cfg (self, mods=None, major_version='4', mandatory=False):
     if mods == None: modules = '''
         juce_audio_basics
         juce_audio_devices
@@ -82,10 +82,18 @@ def check_juce_modules (self, mods=None):
     useflags = []
 
     for mod in modules:
-        pkgslug = '%s-3' % mod.replace ('_', '-')
-        self.check_cfg (package=pkgslug, uselib_store=mod.upper(),  \
-                        args=['--libs', '--cflags'], mandatory=True)
+        mod = mod.replace('-', '_')
+        if not mod[:5] == 'juce_':
+            mod = 'juce_' + mod
+        if self.options.debug:
+            mod += '_debug'
+        pkgslug = '%s-%s' % (mod.replace ('_', '-'), major_version)
+        self.check_cfg (package=pkgslug, uselib_store=mod.replace('_debug','').upper(),  \
+                        args=['--libs', '--cflags'], mandatory=mandatory)
         useflags.append (mod.upper())
+
+    self.line_just = line_just
+    return useflags
 
 def is_mac():
     return 'Darwin' in platform.system()
@@ -178,7 +186,7 @@ class ModuleInfo:
         pkgs = []
 
         for dep in self.dependencies():
-            pkgs.append (dep.replace ('_', '-') + '-3')
+            pkgs.append (dep.replace ('_', '-') + '-' + self.version()[:1])
 
         if is_mac():
             pkgs += self.osxFrameworks()
@@ -306,7 +314,7 @@ def find (ctx, pattern):
     pattern = '%s/**/%s' % (ctx.env.JUCE_MODULE_PATH, pattern)
     return ctx.path.ant_glob (pattern)
 
-def build_modular_libs (bld, mods, vnum='', postfix=''):
+def build_modular_libs (bld, mods, vnum='4.0.2', postfix=''):
     '''compile the passed modules into individual targets. returns
         a list of waf bld objects in case further setup is required'''
     libs = []
@@ -318,27 +326,15 @@ def build_modular_libs (bld, mods, vnum='', postfix=''):
         src  = find (bld, mod + mext)
         slug = mod.replace('_', '-')
         use  = info.requiredPackages()
-
+        major_version = vnum[:1]
         if is_linux() and mod == 'juce_graphics':
             use += ['FREETYPE2']
-
-        # this is a workaround that forces opengl to always
-        # compile with gui_basics.
-        '''
-        if is_mac() and opengl_wanted:
-            if mod == 'juce_gui_basics':
-                src += find (bld, 'juce_opengl.mm') + \
-                       find (bld, 'juce_graphics.mm')
-                use += ['OPEN_GL']
-            if mod == 'juce_opengl' or mod == 'juce_graphics':
-                continue
-        '''
 
         obj = bld (
             features  = "cxx cxxshlib",
             source    = list (set (src)),
-            name      = '%s-3' % (slug + postfix.replace('_', '-')),
-            target    = '%s-3' % (mod + postfix),
+            name      = '%s-%s' % (slug + postfix.replace('_', '-'), major_version),
+            target    = '%s-%s' % (mod + postfix, major_version),
             use       = list (set (use)),
             includes  = [],
             linkflags = info.linkFlags()

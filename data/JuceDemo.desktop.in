@@ -1,7 +1,7 @@
 [Desktop Entry]
 Name=JUCE Demo
 Comment=JUCE Demonstration Application
-Exec=JuceDemo
+Exec=@JUCE_BIN@/JuceDemo
 Icon=@JUCE_DATA@/icons/juce_icon.xpm
 Terminal=0
 Type=Application

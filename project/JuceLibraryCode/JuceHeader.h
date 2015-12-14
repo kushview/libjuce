@@ -36,11 +36,13 @@
  using namespace juce;
 #endif
 
+#if ! JUCE_DONT_DECLARE_PROJECTINFO
 namespace ProjectInfo
 {
     const char* const  projectName    = "libjuce";
     const char* const  versionString  = "3.0.0";
     const int          versionNumber  = 0x30000;
 }
+#endif
 
 #endif   // __APPHEADERFILE_SY5MUQ__

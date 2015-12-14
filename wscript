@@ -19,22 +19,40 @@ sys.path.insert(0, "tools/waf")
 import juce
 from juce import IntrojucerProject as Project
 
-JUCE_VERSION  = '3.2.0'
+JUCE_VERSION  = '4.0.2'
 EXTRA_VERSION = ''
 
-LIBJUCE_VERSION=JUCE_VERSION+EXTRA_VERSION
-LIBJUCE_MAJOR_VERSION=3
-LIBJUCE_MINOR_VERSION=2
-LIBJUCE_MICRO_VERSION=0
-LIBJUCE_EXTRA_VERSION=EXTRA_VERSION
+JUCE_VERSION=JUCE_VERSION+EXTRA_VERSION
+JUCE_MAJOR_VERSION=4
+JUCE_MINOR_VERSION=0
+JUCE_MICRO_VERSION=2
+JUCE_EXTRA_VERSION=EXTRA_VERSION
 
 # For waf dist
 APPNAME = 'libjuce'
-VERSION = LIBJUCE_VERSION
+VERSION = JUCE_VERSION
 
 # Waf wants these as well
 top = '.'
 out = 'build'
+
+library_modules = '''
+    juce_audio_basics
+    juce_audio_devices
+    juce_audio_formats
+    juce_audio_processors
+    juce_audio_utils
+    juce_box2d
+    juce_core
+    juce_cryptography
+    juce_data_structures
+    juce_events
+    juce_graphics
+    juce_gui_basics
+    juce_gui_extra
+    juce_opengl
+    juce_video
+'''.split()
 
 def options(opts):
     opts.load ('compiler_c compiler_cxx juce')
@@ -56,11 +74,11 @@ def configure(conf):
     conf.load ('compiler_c compiler_cxx juce')
 
     # Put some defines in a header file
-    conf.define ("LIBJUCE_VERSION", VERSION)
-    conf.define ("LIBJUCE_MAJOR_VERSION",LIBJUCE_MAJOR_VERSION)
-    conf.define ("LIBJUCE_MINOR_VERSION",LIBJUCE_MINOR_VERSION)
-    conf.define ("LIBJUCE_MICRO_VERSION",LIBJUCE_MICRO_VERSION)
-    conf.define ("LIBJUCE_EXTRA_VERSION",LIBJUCE_EXTRA_VERSION)
+    conf.define ("JUCE_VERSION", VERSION)
+    conf.define ("JUCE_MAJOR_VERSION",JUCE_MAJOR_VERSION)
+    conf.define ("JUCE_MINOR_VERSION",JUCE_MINOR_VERSION)
+    conf.define ("JUCE_MICRO_VERSION",JUCE_MICRO_VERSION)
+    conf.define ("JUCE_EXTRA_VERSION",JUCE_EXTRA_VERSION)
     conf.define ("UPSTREAM_VERSION", JUCE_VERSION);
     conf.write_config_header ('Version.h')
 
@@ -77,9 +95,9 @@ def configure(conf):
     conf.check_cxx11()
 
     # Export version to the environment
-    conf.env.LIBJUCE_MAJOR_VERSION = LIBJUCE_MAJOR_VERSION
-    conf.env.LIBJUCE_MINOR_VERSION = LIBJUCE_MINOR_VERSION
-    conf.env.LIBJUCE_MICRO_VERSION = LIBJUCE_MICRO_VERSION
+    conf.env.JUCE_MAJOR_VERSION = JUCE_MAJOR_VERSION
+    conf.env.JUCE_MINOR_VERSION = JUCE_MINOR_VERSION
+    conf.env.JUCE_MICRO_VERSION = JUCE_MICRO_VERSION
     conf.env.APPNAME               = APPNAME
 
     # Store options in environment
@@ -93,16 +111,25 @@ def configure(conf):
     if juce.is_mac():
         pass
     elif juce.is_linux():
+        conf.check_cfg (package='libcurl', uselib_store='CURL', args=['--libs', '--cflags'], mandatory=False)
         conf.check_cfg (package='x11',  uselib_store='X11',  args=['--libs', '--cflags'], mandatory=False)
         conf.check_cfg (package='xext', uselib_store='XEXT', args=['--libs', '--cflags'], mandatory=False)
         conf.check_cfg (package='gl',   uselib_store='GL',   args=['--libs', '--cflags'], mandatory=False)
         conf.check_cfg (package='alsa', uselib_store='ALSA', args=['--libs', '--cflags'], mandatory=False)
         conf.check_cfg (package='jack', uselib_store='JACK', args=['--libs', '--cflags'], mandatory=False)
         conf.check_cfg (package='freetype2', uselib_store='FREETYPE2', args=['--libs', '--cflags'], mandatory=True)
+
+
+
     elif juce.is_windows():
         pass
 
     conf.write_config_header ("libjuce_config.h")
+
+    conf.define('JUCE_USE_CURL', conf.is_defined('HAVE_CURL'))
+    for mod in library_modules:
+        conf.define('JUCE_MODULE_AVAILABLE_%s' % mod, 1)
+    conf.write_config_header ('modules/config.h')
 
     if juce.is_linux():
         conf.define ("LINUX", 1)
@@ -149,30 +176,13 @@ def make_desktop (bld, slug):
              source    = src,
              target    = tgt,
              name      = tgt,
+             JUCE_BIN  = bld.env.BINDIR,
              JUCE_DATA = "%s/juce" % (bld.env.DATADIR),
              install_path = bld.env.DATADIR + "/applications"
         )
 
-library_modules = '''
-    juce_audio_basics
-    juce_audio_devices
-    juce_audio_formats
-    juce_audio_processors
-    juce_audio_utils
-    juce_box2d
-    juce_core
-    juce_cryptography
-    juce_data_structures
-    juce_events
-    juce_graphics
-    juce_gui_basics
-    juce_gui_extra
-    juce_opengl
-    juce_video
-'''.split()
-
 def get_include_path(bld):
-    return bld.env.INCLUDEDIR + '/juce-3/juce'
+    return bld.env.INCLUDEDIR + '/juce-%s/juce' % JUCE_MAJOR_VERSION
 
 def install_module_headers (bld, modules):
     for mod in modules:
@@ -180,17 +190,19 @@ def install_module_headers (bld, modules):
                            bld.path.ant_glob ("src/modules/" + mod + "/**/*.h"), \
                            relative_trick=True, cwd=bld.path.find_dir ('src'))
 
-def install_misc_header(bld, h):
-    bld.install_files (get_include_path (bld), h)
+def install_misc_header(bld, h, subpath=''):
+    p = get_include_path(bld) + subpath
+    bld.install_files (p, h)
 
 def module_slug(mod, debug=False):
     slug = mod.replace('_', '-')
     if debug: slug += '-debug'
-    slug += '-3'
+    slug += '-%s' % JUCE_MAJOR_VERSION
     return slug
 
 def library_slug(mod, debug=False):
-    slug = mod + '_debug-3' if debug else mod + '-3'
+    mv = JUCE_MAJOR_VERSION
+    slug = mod + '_debug-%s' % mv if debug else mod + '-%s' % mv
     return slug
 
 def build_modules(bld):
@@ -205,13 +217,17 @@ def build_modules(bld):
         module = juce.get_module_info (bld, m)
         slug = module_slug(m, is_debug)
         required_packages = ' '.join (module.requiredPackages())
-        if is_debug: required_packages = required_packages.replace('-3', '-debug-3')
+        if is_debug:
+            lhs = '-%s' % JUCE_MAJOR_VERSION
+            rhs = '-debug' + lhs
+            required_packages = required_packages.replace(lhs, rhs)
 
         pcobj = bld (
             features     = 'subst',
             source       = 'juce-module.pc.in',
             target       = slug + '.pc',
             install_path = bld.env.LIBDIR + '/pkgconfig',
+            MAJOR_VERSION= JUCE_MAJOR_VERSION,
             PREFIX       = bld.env.PREFIX,
             INCLUDEDIR   = bld.env.INCLUDEDIR,
             LIBDIR       = bld.env.LIBDIR,
@@ -225,10 +241,11 @@ def build_modules(bld):
     if bld.env.INSTALL_HEADERS:
         install_module_headers (bld, library_modules)
         install_misc_header (bld, 'juce/juce.h')
-        install_misc_header (bld, 'project/JuceLibraryCode/AppConfig.h')
-        install_misc_header (bld, 'project/JuceLibraryCode/JuceHeader.h')
+        install_misc_header (bld, 'build/modules/config.h', '/modules')
 
 def build (bld):
+    bld.env.INSTALL_HEADERS = bld.options.install_headers
+
     if bld.env.BUILD_JUCE_MODULES:
         build_modules(bld)
 
@@ -246,7 +263,7 @@ def build (bld):
             juce_useflags = []
 
         for mod in library_modules:
-            pkgslug = '%s-3' % mod.replace ('_', '-')
+            pkgslug = module_slug(mod, bld.env.BUILD_DEBUGGABLE)
             juce_useflags.append (pkgslug)
 
         obj = bld.program (
@@ -265,18 +282,18 @@ def build (bld):
 
         bld.add_group()
 
-    if bld.env.BUILD_INTROJUCER:
-        node = bld.path.find_resource ('src/extras/Introjucer/Introjucer.jucer')
+    def build_project (project, name):
+        node = bld.path.find_resource (project)
         introjucer = juce.IntrojucerProject (bld, node.relpath())
         obj = introjucer.compile (bld)
-        obj.use += ['FREETYPE2']
-        make_desktop (bld, 'Introjucer')
+        obj.use += ['FREETYPE2', 'CURL']
+        make_desktop (bld, name)
+        return obj
 
+    if bld.env.BUILD_INTROJUCER:
+        build_project ('src/extras/Introjucer/Introjucer.jucer', 'Introjucer')
     if bld.env.BUILD_JUCE_DEMO:
-        node = bld.path.find_resource ('src/extras/Demo/JuceDemo.jucer')
-        demo = juce.IntrojucerProject (bld, node.relpath())
-        obj = demo.compile (bld)
-        make_desktop (bld, 'JuceDemo')
+        build_project ('src/examples/Demo/JuceDemo.jucer', 'JuceDemo')
 
     # Install common juce data on Linux systems
     if juce.is_linux():

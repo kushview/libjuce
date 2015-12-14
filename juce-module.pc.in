@@ -2,10 +2,11 @@ prefix=@PREFIX@
 exec_prefix=@EXEC_PREFIX@
 libdir=@LIBDIR@
 includedir=@INCLUDEDIR@
+major_version=@MAJOR_VERSION@
 
 Name: @NAME@
 Version: @VERSION@
 Description: @DESCRIPTION@
-Cflags: -I${includedir}/juce-3 -I${includedir}/juce-3/juce
+Cflags: -I${includedir}/juce-${major_version} -I${includedir}/juce-${major_version}/juce
 Libs: -L${libdir} @DEPLIBS@
 Requires: @REQUIRED@

@@ -1,7 +1,7 @@
 [Desktop Entry]
-Name=JUCE Introjucer
+Name=Introjucer
 Comment=JUCE Project Builder
-Exec=Introjucer
+Exec=@JUCE_BIN@/Introjucer
 Icon=@JUCE_DATA@/icons/juce_icon.xpm
 Terminal=0
 Type=Application
