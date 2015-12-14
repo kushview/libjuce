@@ -1,4 +1,5 @@
 project/Builds
+project/JuceLibraryCode/modules
 
 # Waf artifacts
 build
