@@ -219,6 +219,13 @@ def build_modules(bld):
         module = juce.get_module_info (bld, m)
         slug = module_slug(m, is_debug)
         required_packages = ' '.join (module.requiredPackages (is_debug))
+        deplibs = ' '.join (module.linuxLibs())
+
+        if m == 'juce_core':
+            for lib in bld.env.LIB_CURL:
+                deplibs += ' -l%s' % lib
+
+        deplibs += ' -l%s' % library_slug(m, is_debug)
 
         pcobj = bld (
             features     = 'subst',
@@ -229,7 +236,7 @@ def build_modules(bld):
             PREFIX       = bld.env.PREFIX,
             INCLUDEDIR   = bld.env.INCLUDEDIR,
             LIBDIR       = bld.env.LIBDIR,
-            DEPLIBS      = ' '.join (module.linuxLibs()) + ' -l' + library_slug(m, is_debug),
+            DEPLIBS      = deplibs,
             REQUIRED     = required_packages,
             NAME         = module.name(),
             DESCRIPTION  = module.description(),
