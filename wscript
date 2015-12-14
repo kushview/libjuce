@@ -224,6 +224,7 @@ def build_modules(bld):
 
     if bld.env.INSTALL_HEADERS:
         install_module_headers (bld, library_modules)
+        install_misc_header (bld, 'juce/juce.h')
         install_misc_header (bld, 'project/JuceLibraryCode/AppConfig.h')
         install_misc_header (bld, 'project/JuceLibraryCode/JuceHeader.h')
 
