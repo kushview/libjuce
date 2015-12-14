@@ -58,7 +58,7 @@ def options(opts):
     opts.load ('compiler_c compiler_cxx juce')
 
     opts.add_option('--introjucer', default=False, action="store_true", \
-        dest="introjucer", help="Disable Jucer Builds [ Default: False ]")
+        dest="introjucer", help="Build the Introjucer [ Default: False ]")
     opts.add_option('--juce-demo', default=False, action="store_true", \
         dest="juce_demo", help="Build the JUCE Demo [ Default: False ]")
     opts.add_option('--no-headers', default=True, action="store_false", \
