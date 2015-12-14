@@ -249,7 +249,7 @@ def build_modules(bld):
             install_misc_header (bld, header)
         install_misc_header (bld, 'build/modules/config.h', '/modules')
 
-def build_project (project, name):
+def build_project (bld, project, name):
     node = bld.path.find_resource (project)
     introjucer = juce.IntrojucerProject (bld, node.relpath())
     obj = introjucer.compile (bld)
@@ -297,9 +297,9 @@ def build (bld):
         bld.add_group()
 
     if bld.env.BUILD_INTROJUCER:
-        build_project ('src/extras/Introjucer/Introjucer.jucer', 'Introjucer')
+        build_project (bld, 'src/extras/Introjucer/Introjucer.jucer', 'Introjucer')
     if bld.env.BUILD_JUCE_DEMO:
-        build_project ('src/examples/Demo/JuceDemo.jucer', 'JuceDemo')
+        build_project (bld, 'src/examples/Demo/JuceDemo.jucer', 'JuceDemo')
 
     # Install common juce data on Linux systems
     if juce.is_linux():
