@@ -24,8 +24,18 @@ cd path/to/libjuce
 ./waf install
 ```
 
-__Installing debuggable modules__
+__Installing Debuggable Libraries__
 ```
 ./waf configure --debug build
 ./waf install --no-headers
+```
+
+__Complete Installation__
+
+_See:_ [tools/install.sh](tools/install.sh)
+
+The PREFIX envronment variable can be used to determine the install location
+
+```
+PREFIX=/opt/mydir bash tools/install.sh
 ```
