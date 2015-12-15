@@ -1,13 +1,13 @@
 ## libJUCE
 
-A standardized build/install [JUCE](http://juce.com). This is done by compiling upstream [JUCE](http://juce.com)
+A standardized build/install [JUCE](http://www.juce.com). This is done by compiling upstream [JUCE](http://www.juce.com)
 modules as shared libraries and installing them to the system using the
 [Waf meta build system](https://waf.io)
 
 _**Note:** This is NOT the [official JUCE codebase](https://github.com/julianstorer/JUCE.git). This is just a waf build
 centered around upstream JUCE via a submodule._
 
-### Building/Installing JUCE
+### Building/Installing libJUCE
 Since this uses waf, installation is easy. From the command line:
 
 __Installing JUCE modules__

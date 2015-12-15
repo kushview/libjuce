@@ -18,7 +18,7 @@
 */
 
 /*
-    Compatibility for thirdparty juce modules and introjucer projects
+    Compatibility with thirdparty juce modules and introjucer projects
 
     This file is here so that projects and thirdparty juce modules will
     compile with or without libjuce and not worry about handling the logic
