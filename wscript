@@ -19,14 +19,11 @@ sys.path.insert(0, "tools/waf")
 import juce
 from juce import IntrojucerProject as Project
 
-JUCE_VERSION  = '4.0.2'
-EXTRA_VERSION = ''
-
-JUCE_VERSION=JUCE_VERSION+EXTRA_VERSION
-JUCE_MAJOR_VERSION=4
-JUCE_MINOR_VERSION=0
-JUCE_MICRO_VERSION=2
-JUCE_EXTRA_VERSION=EXTRA_VERSION
+JUCE_VERSION  = '4.1.0'
+JUCE_MAJOR_VERSION = JUCE_VERSION[0]
+JUCE_MINOR_VERSION = JUCE_VERSION[2]
+JUCE_MICRO_VERSION = JUCE_VERSION[4]
+JUCE_EXTRA_VERSION = ''
 
 # For waf dist
 APPNAME = 'libjuce'
@@ -80,7 +77,7 @@ def options(opts):
 
 def configure(conf):
     conf.prefer_clang()
-    conf.load ('compiler_c compiler_cxx juce')
+    conf.load ('compiler_c compiler_cxx')
 
     # Store options in environment
     conf.env.BUILD_DEBUGGABLE   = conf.options.debug
@@ -96,21 +93,22 @@ def configure(conf):
     conf.env.INCLUDEDIR = conf.env.PREFIX + '/include'
 
     # Write out the version header
-    conf.define ("JUCE_VERSION", VERSION)
-    conf.define ("JUCE_MAJOR_VERSION",JUCE_MAJOR_VERSION)
-    conf.define ("JUCE_MINOR_VERSION",JUCE_MINOR_VERSION)
-    conf.define ("JUCE_MICRO_VERSION",JUCE_MICRO_VERSION)
-    conf.define ("JUCE_EXTRA_VERSION",JUCE_EXTRA_VERSION)
-    conf.write_config_header ('modules/version.h')
+    conf.define ("JUCE_VERSION", JUCE_VERSION)
+    conf.define ("JUCE_MAJOR_VERSION", JUCE_MAJOR_VERSION)
+    conf.define ("JUCE_MINOR_VERSION", JUCE_MINOR_VERSION)
+    conf.define ("JUCE_MICRO_VERSION", JUCE_MICRO_VERSION)
+    conf.define ("JUCE_EXTRA_VERSION", JUCE_EXTRA_VERSION)
+    conf.write_config_header ('modules/version.h', 'LIBJUCE_VERSION_H')
 
     conf.env.JUCE_MODULE_PATH = 'src/modules' # need an option for this
+    conf.load('juce')
     conf.check_cxx11()
     conf.check_inline()
 
     if juce.is_mac():
         #library_modules.remove('juce_opengl')
         pass
-        
+
     elif juce.is_linux():
         if conf.options.system_png:
             conf.check_cfg (package='libpng', uselib_store='PNG', args=['--libs', '--cflags'], mandatory=True)
@@ -142,7 +140,7 @@ def configure(conf):
     conf.define('JUCE_STANDALONE_APPLICATION', 0)
     for mod in library_modules:
         conf.define('JUCE_MODULE_AVAILABLE_%s' % mod, 1)
-    conf.write_config_header ('modules/config.h')
+    conf.write_config_header ('modules/config.h', 'LIBJUCE_MODULES_CONFIG_H')
 
     if juce.is_linux():
         conf.define ("LINUX", 1)

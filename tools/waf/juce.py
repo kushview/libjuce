@@ -3,9 +3,8 @@
 
 import json, os, platform, re, sys, unicodedata
 from xml.etree import ElementTree as ET
-
-from waflib import Utils, Logs, Errors
 from waflib.Configure import conf
+from waflib import Utils, Logs, Errors, TaskGen
 
 def convert_camel (words, upper=False):
     s1 = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', words)
@@ -58,15 +57,13 @@ def check_cxx11 (self, required=False):
 
     if is_mac():
         self.check_cxx (linkflags=["-stdlib=libc++", "-lc++"],
-                        cxxflags=["-stdlib=libc++", "-std=c++11"], mandatory=required)
+                        cxxflags=["-stdlib=libc++", "-std=c++11"],
+                        mandatory=required)
         self.env.append_unique ("CXXFLAGS", ["-stdlib=libc++", "-std=c++11"])
         self.env.append_unique ("LINKFLAGS", ["-stdlib=libc++", "-lc++"])
     elif is_linux():
         self.check_cxx (cxxflags=["-std=c++11"], mandatory=required)
         self.env.append_unique ("CXXFLAGS", ["-std=c++11"])
-    else:
-        print "!!!!! SETUP CXX11 FOR " + platform.system()
-        exit (1)
 
     self.line_just = line_just
 
@@ -123,11 +120,11 @@ def get_module_info (ctx, mod):
 
 def plugin_pattern (bld):
     ''' this is only valid after 'juce.py' has been loading during configure'''
-    return bld.env['plugin_PATTERN']
+    return bld.env.plugin_PATTERN
 
 def plugin_extension (bld):
     ''' this is only valid after 'juce.py' has been loading during configure'''
-    return bld.env['plugin_EXT']
+    return bld.env.plugin_EXT
 
 def options (opt):
     opt.add_option ('--debug', default=False, action="store_true", dest="debug", help="Compile debuggable binaries [ Default: False ]")
@@ -633,12 +630,10 @@ class IntrojucerProject:
 
         return object
 
-from waflib import TaskGen
 @TaskGen.extension ('.mm')
 def juce_mm_hook (self, node):
     return self.create_compiled_task ('cxx', node)
 
-from waflib import TaskGen
 @TaskGen.extension ('.m')
 def juce_m_hook (self, node):
     return self.create_compiled_task ('c', node)
