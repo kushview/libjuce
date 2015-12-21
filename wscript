@@ -51,6 +51,7 @@ library_modules = '''
     juce_video
 '''.split()
 
+
 def modules_options(opts):
     opts.add_option('--system-jpeg', default=False, action="store_true", \
         dest="system_jpeg", help="Use system JPEG")
@@ -75,7 +76,7 @@ def options(opts):
 
     modules_options(opts)
 
-def configure(conf):
+def configure (conf):
     conf.prefer_clang()
     conf.load ('compiler_c compiler_cxx')
 
@@ -100,8 +101,6 @@ def configure(conf):
     conf.define ("JUCE_EXTRA_VERSION", JUCE_EXTRA_VERSION)
     conf.write_config_header ('modules/version.h', 'LIBJUCE_VERSION_H')
 
-    conf.env.JUCE_MODULE_PATH = 'src/modules' # need an option for this
-    conf.load('juce')
     conf.check_cxx11()
     conf.check_inline()
 
@@ -119,42 +118,32 @@ def configure(conf):
             conf.check (header_name='jpeglib.h', uselib_store='JPEG', mandatory=True)
             conf.check (lib='jpeg', uselib_store='JPEG', mandatory=True)
 
+        conf.check_cfg (package='freetype2', uselib_store='FREETYPE', args=['--libs', '--cflags'], mandatory=True)
         conf.check_cfg (package='libcurl', uselib_store='CURL', args=['--libs', '--cflags'], mandatory=False)
         conf.check_cfg (package='x11',  uselib_store='X11',  args=['--libs', '--cflags'], mandatory=False)
         conf.check_cfg (package='xext', uselib_store='XEXT', args=['--libs', '--cflags'], mandatory=False)
         conf.check_cfg (package='gl',   uselib_store='GL',   args=['--libs', '--cflags'], mandatory=False)
         conf.check_cfg (package='alsa', uselib_store='ALSA', args=['--libs', '--cflags'], mandatory=False)
         conf.check_cfg (package='jack', uselib_store='JACK', args=['--libs', '--cflags'], mandatory=False)
-        conf.check_cfg (package='freetype2', uselib_store='FREETYPE2', args=['--libs', '--cflags'], mandatory=True)
 
     elif juce.is_windows():
         pass
 
     conf.write_config_header ("libjuce_config.h")
 
-    conf.define('JUCE_USE_CURL', len(conf.env.LIB_CURL) > 0)
-    conf.define('JUCE_USE_ALSA', len(conf.env.LIB_ALSA) > 0)
-    conf.define('JUCE_USE_JACK', len(conf.env.LIB_JACK) > 0)
-    conf.define('JUCE_INCLUDE_PNGLIB_CODE', len(conf.env.LIB_PNG) <= 0)
-    conf.define('JUCE_INCLUDE_JPEGLIB_CODE', len(conf.env.LIB_JPEG) <= 0)
-    conf.define('JUCE_STANDALONE_APPLICATION', 0)
+    # Write modules/config.h "
+    conf.define ('JUCE_USE_CURL', len(conf.env.LIB_CURL) > 0)
+    conf.define ('JUCE_USE_ALSA', len(conf.env.LIB_ALSA) > 0)
+    conf.define ('JUCE_USE_JACK', len(conf.env.LIB_JACK) > 0)
+    conf.define ('JUCE_INCLUDE_PNGLIB_CODE', len(conf.env.LIB_PNG) <= 0)
+    conf.define ('JUCE_INCLUDE_JPEGLIB_CODE', len(conf.env.LIB_JPEG) <= 0)
+    conf.define ('JUCE_STANDALONE_APPLICATION', 0)
     for mod in library_modules:
-        conf.define('JUCE_MODULE_AVAILABLE_%s' % mod, 1)
+        conf.define('JUCE_MODULE_AVAILABLE_%s' % mod, True)
     conf.write_config_header ('modules/config.h', 'LIBJUCE_MODULES_CONFIG_H')
 
-    if juce.is_linux():
-        conf.define ("LINUX", 1)
-
-    if conf.options.debug:
-        conf.define ("DEBUG", 1)
-        conf.define ("_DEBUG", 1)
-        conf.env.append_unique ('CXXFLAGS', ['-g', '-ggdb', '-O0'])
-        conf.env.append_unique ('CFLAGS', ['-g', '-ggdb', '-O0'])
-    else:
-        conf.define ("NDEBUG", 1)
-        conf.env.append_unique ('CXXFLAGS', ['-Os'])
-        conf.env.append_unique ('CFLAGS', ['-Os'])
-
+    conf.env.JUCE_MODULE_PATH = 'src/modules'
+    conf.load('juce')
     conf.env.append_unique ('CXXFLAGS', '-I' + os.getcwd() + '/build')
     conf.env.append_unique ('CFLAGS', '-I' + os.getcwd() + '/build')
 
@@ -262,7 +251,7 @@ def build_project (bld, project, name):
     node = bld.path.find_resource (project)
     introjucer = juce.IntrojucerProject (bld, node.relpath())
     obj = introjucer.compile (bld)
-    obj.use += ['FREETYPE2', 'CURL']
+    obj.use += ['FREETYPE', 'CURL']
     make_desktop (bld, name)
     return obj
 
@@ -277,7 +266,7 @@ def build (bld):
     if not disable_test_app:
         testapp = Project (bld, 'extras/TestApp/TestApp.jucer')
         if juce.is_linux():
-            juce_useflags = ['X11', 'XEXT', 'ALSA', 'GL', 'FREETYPE2', 'CURL']
+            juce_useflags = ['X11', 'XEXT', 'ALSA', 'GL', 'FREETYPE', 'CURL']
         elif juce.is_mac():
             juce_useflags = ['COCOA', 'IO_KIT']
         else:

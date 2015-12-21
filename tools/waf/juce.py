@@ -127,7 +127,8 @@ def plugin_extension (bld):
     return bld.env.plugin_EXT
 
 def options (opt):
-    opt.add_option ('--debug', default=False, action="store_true", dest="debug", help="Compile debuggable binaries [ Default: False ]")
+    opt.add_option ('--debug', default=False, action="store_true", dest="debug",
+                    help="Compile debuggable binaries [ Default: False ]")
 
 def configure (conf):
     # debugging option
@@ -208,7 +209,7 @@ def build_modular_libs (bld, mods, vnum='4.0.2', postfix=''):
         use  = info.requiredPackages()
         major_version = vnum[:1]
         if is_linux() and mod == 'juce_graphics':
-            use += ['FREETYPE2']
+            use += ['FREETYPE']
 
         obj = bld (
             features  = "cxx cxxshlib",
