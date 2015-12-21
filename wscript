@@ -54,6 +54,12 @@ library_modules = '''
     juce_video
 '''.split()
 
+def modules_options(opts):
+    opts.add_option('--system-jpeg', default=False, action="store_true", \
+        dest="system_jpeg", help="Use system JPEG")
+    opts.add_option('--system-png', default=False, action="store_true", \
+        dest="system_png", help="Use system PNG")
+
 def options(opts):
     opts.load ('compiler_c compiler_cxx juce')
 
@@ -69,6 +75,8 @@ def options(opts):
         dest="static", help="Build Static Libraries [ Default: False ]")
     opts.add_option('--ziptype', default='gz', type='string', \
         dest='ziptype', help="Zip type for waf dist (gz/bz2/zip) [ Default: gz ]")
+
+    modules_options(opts)
 
 def configure(conf):
     conf.load ('compiler_c compiler_cxx juce')
@@ -98,7 +106,7 @@ def configure(conf):
     conf.env.JUCE_MAJOR_VERSION = JUCE_MAJOR_VERSION
     conf.env.JUCE_MINOR_VERSION = JUCE_MINOR_VERSION
     conf.env.JUCE_MICRO_VERSION = JUCE_MICRO_VERSION
-    conf.env.APPNAME               = APPNAME
+    conf.env.APPNAME            = APPNAME
 
     # Store options in environment
     conf.env.BUILD_DEBUGGABLE   = conf.options.debug
@@ -111,7 +119,14 @@ def configure(conf):
     if juce.is_mac():
         pass
     elif juce.is_linux():
-        conf.check_cfg (package='libddcurl', uselib_store='CURLX', args=['--libs', '--cflags'], mandatory=False)
+        if conf.options.system_png:
+            conf.check_cfg (package='libpng', uselib_store='PNG', args=['--libs', '--cflags'], mandatory=True)
+
+        if conf.options.system_jpeg:
+            conf.check (header_name='stdio.h', uselib_store='STDIO', mandatory=True, auto_add_header_name=True)
+            conf.check (header_name='jpegint.h', uselib_store='JPEG', mandatory=True, auto_add_header_name=True)
+            conf.check (header_name='jpeglib.h', uselib_store='JPEG', mandatory=True)
+            conf.check (lib='jpeg', uselib_store='JPEG', mandatory=True)
 
         conf.check_cfg (package='libcurl', uselib_store='CURL', args=['--libs', '--cflags'], mandatory=False)
         conf.check_cfg (package='x11',  uselib_store='X11',  args=['--libs', '--cflags'], mandatory=False)
@@ -129,6 +144,8 @@ def configure(conf):
     conf.define('JUCE_USE_CURL', len(conf.env.LIB_CURL) > 0)
     conf.define('JUCE_USE_ALSA', len(conf.env.LIB_ALSA) > 0)
     conf.define('JUCE_USE_JACK', len(conf.env.LIB_JACK) > 0)
+    conf.define('JUCE_INCLUDE_PNGLIB_CODE', len(conf.env.LIB_PNG) <= 0)
+    conf.define('JUCE_INCLUDE_JPEGLIB_CODE', len(conf.env.LIB_JPEG) <= 0)
     conf.define('JUCE_STANDALONE_APPLICATION', 0)
     for mod in library_modules:
         conf.define('JUCE_MODULE_AVAILABLE_%s' % mod, 1)
@@ -265,13 +282,11 @@ def build (bld):
         build_modules(bld)
 
     # testing linkage against module libs
-    disable_test_app = True
+    disable_test_app = False
     if not disable_test_app:
         testapp = Project (bld, 'extras/TestApp/TestApp.jucer')
-
-        # fake the usage of a pkg-config'd juce setup
         if juce.is_linux():
-            juce_useflags = ['X11', 'XEXT', 'ALSA', 'GL', 'FREETYPE2']
+            juce_useflags = ['X11', 'XEXT', 'ALSA', 'GL', 'FREETYPE2', 'CURL']
         elif juce.is_mac():
             juce_useflags = ['COCOA', 'IO_KIT']
         else:
@@ -283,10 +298,11 @@ def build (bld):
 
         obj = bld.program (
             source   = testapp.getProjectCode(),
-            includes = ['project/JuceLibraryCode'],
+            includes = ['.', 'juce', 'src'],
             name     = 'TestApp',
             target   = 'testapp',
             use      = juce_useflags,
+            linkflags= '-Wl,-rpath,$ORIGIN',
             install_path = None,
         )
 
@@ -302,8 +318,7 @@ def build (bld):
     if bld.env.BUILD_JUCE_DEMO:
         build_project (bld, 'src/examples/Demo/JuceDemo.jucer', 'JuceDemo')
 
-    # Install common juce data on Linux systems
-    if juce.is_linux():
+    if juce.is_linux() and (bld.env.BUILD_INTROJUCER or bld.env.BUILD_JUCE_DEMO):
         bld.install_files (bld.env.DATADIR + '/juce/icons', 'data/juce_icon.xpm')
 
 def dist(ctx):

@@ -26,10 +26,21 @@ def display_msg (conf, msg, status = None, color = None):
     Logs.pprint('BOLD', ":", sep='')
     Logs.pprint(color, status)
 
+def is_mac():
+    return 'Darwin' in platform.system()
+
+def is_linux():
+    return 'Linux' in platform.system()
+
+def is_win32():
+    return 'Windows' in platform.system()
+
+def is_windows():
+    return 'Windows' in platform.system()
+
 @conf
 def check_juce (self):
-    '''this just checks that a version of juce exists'''
-
+    '''Checks that a version of JUCE is available'''
     display_msg (self, "Checking for JUCE")
     mpath = self.env.JUCE_MODULES_PATH = self.options.juce_modules
 
@@ -60,7 +71,9 @@ def check_cxx11 (self, required=False):
     self.line_just = line_just
 
 @conf
-def check_juce_cfg (self, mods=None, major_version='4', mandatory=False):
+def check_juce_cfg (self, mods=None, major_version='4', module_prefix='juce_', mandatory=False):
+    line_just = self.line_just
+
     if mods == None: modules = '''
         juce_audio_basics
         juce_audio_devices
@@ -83,8 +96,8 @@ def check_juce_cfg (self, mods=None, major_version='4', mandatory=False):
 
     for mod in modules:
         mod = mod.replace('-', '_')
-        if not mod[:5] == 'juce_':
-            mod = 'juce_' + mod
+        if not mod[:len(module_prefix)] == module_prefix:
+            mod = module_prefix + mod
         if self.options.debug:
             mod += '_debug'
         pkgslug = '%s-%s' % (mod.replace ('_', '-'), major_version)
@@ -95,51 +108,158 @@ def check_juce_cfg (self, mods=None, major_version='4', mandatory=False):
     self.line_just = line_just
     return useflags
 
-def is_mac():
-    return 'Darwin' in platform.system()
+@conf
+def prefer_clang(self):
+    '''Use clang by default on non-windows'''
+    if is_windows(): return
+    if not 'CC' in os.environ or not 'CXX' in os.environ:
+        self.env.CC  = 'clang'
+        self.env.CXX = 'clang++'
 
-def is_linux():
-    return 'Linux' in platform.system()
+def get_module_info (ctx, mod):
+    nodes = find (ctx, os.path.join (mod, 'juce_module_info'))
+    infofile = "%s" % nodes[0].relpath()
+    return ModuleInfo (infofile)
 
-def is_win32():
-    return 'Windows' in platform.system()
+def plugin_pattern (bld):
+    ''' this is only valid after 'juce.py' has been loading during configure'''
+    return bld.env['plugin_PATTERN']
 
-def is_windows():
-    return 'Windows' in platform.system()
+def plugin_extension (bld):
+    ''' this is only valid after 'juce.py' has been loading during configure'''
+    return bld.env['plugin_EXT']
 
-def get_deps(mod):
-    if "juce_audio_basics" == mod:
-        return ['juce_core']
-    elif "juce_audio_devices" == mod:
-        return ['juce_audio_basics', 'juce_audio_formats', 'juce_events']
-    elif "juce_audio_formats" == mod:
-        return ['juce_audio_basics']
-    elif "juce_audio_processors" == mod:
-        return ['juce_audio_basics', 'juce_gui_extra']
-    elif "juce_audio_utils" == mod:
-        return ['juce_gui_basics', 'juce_audio_devices', 'juce_audio_processors', 'juce_audio_formats']
-    elif "juce_core" == mod:
-        return []
-    elif "juce_cryptography" == mod:
-        return ['juce_core']
-    elif "juce_data_structures" == mod:
-        return ['juce_core', 'juce_events']
-    elif "juce_events" == mod:
-        return ['juce_core']
-    elif "juce_events" == mod:
-        return ['juce_core']
-    elif "juce_graphics" == mod:
-        return ['juce_core','juce_events']
-    elif "juce_gui_basics" == mod:
-        return ['juce_core', 'juce_events', 'juce_graphics', 'juce_data_structures']
-    elif "juce_gui_extra" == mod:
-        return ['juce_gui_basics']
-    elif "juce_opengl" == mod:
-        return ['juce_gui_extra']
-    elif "juce_video" == mod:
-        return ['juce_gui_extra']
+def options (opt):
+    opt.add_option ('--debug', default=False, action="store_true", dest="debug", help="Compile debuggable binaries [ Default: False ]")
+
+def configure (conf):
+    # debugging option
+    if conf.options.debug:
+        conf.define ("DEBUG", 1)
+        conf.define ("_DEBUG", 1)
+        conf.env.append_unique ('CXXFLAGS', ['-g', '-ggdb', '-O0'])
+        conf.env.append_unique ('CFLAGS', ['-g', '-ggdb', '-O0'])
     else:
-        return []
+        conf.define ("NDEBUG", 1)
+        conf.env.append_unique ('CXXFLAGS', ['-Os'])
+        conf.env.append_unique ('CFLAGS', ['-Os'])
+
+    # output dir (build dir)
+    outdir = conf.options.out
+    if len (outdir) == 0:
+        outdir = "build"
+
+    # module path
+    if not conf.env.JUCE_MODULE_PATH:
+        conf.env.JUCE_MODULE_PATH = os.path.join (os.path.expanduser("~"), 'juce/modules')
+
+    # define a library pattern suitable for plugins/modules
+    # (e.g. remove the 'lib' from libplugin.so)
+    pat = conf.env['cshlib_PATTERN']
+    if not pat:
+        pat = conf.env['cxxshlib_PATTERN']
+    if pat.startswith('lib'):
+        pat = pat[3:]
+    conf.env['plugin_PATTERN'] = pat
+    conf.env['plugin_EXT'] = pat[pat.rfind('.'):]
+
+    # do platform stuff
+    if is_linux():
+        conf.define ('LINUX', 1)
+    elif is_mac():
+        conf.env.FRAMEWORK_ACCELERATE     = 'Accelerate'
+        conf.env.FRAMEWORK_AUDIO_TOOLBOX  = 'AudioToolbox'
+        conf.env.FRAMEWORK_CORE_AUDIO     = 'CoreAudio'
+        conf.env.FRAMEWORK_CORE_MIDI      = 'CoreMIDI'
+        conf.env.FRAMEWORK_COCOA          = 'Cocoa'
+        conf.env.FRAMEWORK_CARBON         = 'Carbon'
+        conf.env.FRAMEWORK_DISC_RECORDING = 'DiscRecording'
+        conf.env.FRAMEWORK_IO_KIT         = 'IOKit'
+        conf.env.FRAMEWORK_OPEN_GL        = 'OpenGL'
+        conf.env.FRAMEWORK_QT_KIT         = 'QTKit'
+        conf.env.FRAMEWORK_QuickTime      = 'QuickTime'
+        conf.env.FRAMEWORK_QUARTZ_CORE    = 'QuartzCore'
+        conf.env.FRAMEWORK_WEB_KIT        = 'WebKit'
+    elif is_win32(): pass
+
+def extension():
+    if platform.system() != "Darwin":
+        return ".cpp"
+    else:
+        return ".mm"
+
+def find (ctx, pattern):
+    '''find resources in the juce module path'''
+
+    if len(pattern) <= 0:
+        return None
+
+    pattern = '%s/**/%s' % (ctx.env.JUCE_MODULE_PATH, pattern)
+    return ctx.path.ant_glob (pattern)
+
+def build_modular_libs (bld, mods, vnum='4.0.2', postfix=''):
+    '''compile the passed modules into individual targets. returns
+        a list of waf bld objects in case further setup is required'''
+    libs = []
+    mext = extension()
+    opengl_wanted = 'juce_opengl' in mods;
+
+    for mod in mods:
+        info = get_module_info (bld, mod)
+        src  = find (bld, mod + mext)
+        slug = mod.replace('_', '-')
+        use  = info.requiredPackages()
+        major_version = vnum[:1]
+        if is_linux() and mod == 'juce_graphics':
+            use += ['FREETYPE2']
+
+        obj = bld (
+            features  = "cxx cxxshlib",
+            source    = list (set (src)),
+            name      = '%s-%s' % (slug + postfix.replace('_', '-'), major_version),
+            target    = '%s-%s' % (mod + postfix, major_version),
+            use       = list (set (use)),
+            includes  = [],
+            linkflags = info.linkFlags()
+        )
+
+        if len(vnum) > 0:
+            obj.vnum = vnum
+
+        libs += [obj]
+
+    return libs
+
+def build_unified_library (bld, tgt, mods, feats="cxx cxxshlib"):
+    mext = extension()
+
+    mod_path = bld.env.JUCE_MODULE_PATH
+    src = []
+    ug  = []
+
+    for mod in mods:
+        src += [mod_path + "/" + mod + "/" + mod + mext]
+        ug += get_use_libs (mod)
+
+    # strip out duplicate use libs
+    us = list (set (us))
+
+    obj = bld (
+        features    = feats,
+        source      = src,
+        includes    = [],
+        name        = tgt,
+        target      = tgt,
+        use         = us
+    )
+
+    return obj
+
+def module_path (ctx):
+    return ctx.env.JUCE_MODULE_PATH
+
+def available_modules (ctx):
+    return os.listdir (module_path (ctx))
 
 class ModuleInfo:
     data     = None
@@ -233,155 +353,6 @@ class ModuleInfo:
                 fwks.append (convert_camel (fw, True))
 
         return fwks
-
-
-def get_module_info (ctx, mod):
-    nodes = find (ctx, os.path.join (mod, 'juce_module_info'))
-    infofile = "%s" % nodes[0].relpath()
-    return ModuleInfo (infofile)
-
-def plugin_pattern (bld):
-    ''' this is only valid after 'juce.py' has been loading during configure'''
-    return bld.env['plugin_PATTERN']
-
-def plugin_extension (bld):
-    ''' this is only valid after 'juce.py' has been loading during configure'''
-    return bld.env['plugin_EXT']
-
-def options (opt):
-    opt.add_option ('--debug', default=False, action="store_true", dest="debug", help="Compile debuggable binaries [ Default: False ]")
-
-def configure (conf):
-
-    # debugging option
-    if conf.options.debug:
-        conf.define ("DEBUG", 1)
-        conf.define ("_DEBUG", 1)
-        conf.env.append_unique ('CXXFLAGS', ['-g', '-ggdb', '-O0'])
-        conf.env.append_unique ('CFLAGS', ['-g', '-ggdb', '-O0'])
-    else:
-        conf.define ("NDEBUG", 1)
-        conf.env.append_unique ('CXXFLAGS', ['-Os'])
-        conf.env.append_unique ('CFLAGS', ['-Os'])
-
-    # output dir (build dir)
-    outdir = conf.options.out
-    if len (outdir) == 0:
-        outdir = "build"
-
-    # module path
-    if not conf.env.JUCE_MODULE_PATH:
-        conf.env.JUCE_MODULE_PATH = os.path.join (os.path.expanduser("~"), 'juce/modules')
-
-    # define a library pattern suitable for plugins/modules
-    # (e.g. remove the 'lib' from libplugin.XXX)
-    pat = conf.env['cshlib_PATTERN']
-    if not pat:
-        pat = conf.env['cxxshlib_PATTERN']
-    if pat.startswith('lib'):
-        pat = pat[3:]
-    conf.env['plugin_PATTERN'] = pat
-    conf.env['plugin_EXT'] = pat[pat.rfind('.'):]
-
-    # do platform stuff
-    if is_linux():
-        conf.define ('LINUX', 1)
-    elif is_mac():
-        conf.env.FRAMEWORK_ACCELERATE     = 'Accelerate'
-        conf.env.FRAMEWORK_AUDIO_TOOLBOX  = 'AudioToolbox'
-        conf.env.FRAMEWORK_CORE_AUDIO     = 'CoreAudio'
-        conf.env.FRAMEWORK_CORE_MIDI      = 'CoreMIDI'
-        conf.env.FRAMEWORK_COCOA          = 'Cocoa'
-        conf.env.FRAMEWORK_CARBON         = 'Carbon'
-        conf.env.FRAMEWORK_DISC_RECORDING = 'DiscRecording'
-        conf.env.FRAMEWORK_IO_KIT         = 'IOKit'
-        conf.env.FRAMEWORK_OPEN_GL        = 'OpenGL'
-        conf.env.FRAMEWORK_QT_KIT         = 'QTKit'
-        conf.env.FRAMEWORK_QuickTime      = 'QuickTime'
-        conf.env.FRAMEWORK_QUARTZ_CORE    = 'QuartzCore'
-        conf.env.FRAMEWORK_WEB_KIT        = 'WebKit'
-    elif is_win32(): pass
-
-def extension():
-    if platform.system() != "Darwin":
-        return ".cpp"
-    else:
-        return ".mm"
-
-def find (ctx, pattern):
-    '''find resources in the juce module path'''
-
-    if len(pattern) <= 0:
-        return None
-
-    pattern = '%s/**/%s' % (ctx.env.JUCE_MODULE_PATH, pattern)
-    return ctx.path.ant_glob (pattern)
-
-def build_modular_libs (bld, mods, vnum='4.0.2', postfix=''):
-    '''compile the passed modules into individual targets. returns
-        a list of waf bld objects in case further setup is required'''
-    libs = []
-    mext = extension()
-    opengl_wanted = 'juce_opengl' in mods;
-
-    for mod in mods:
-        info = get_module_info (bld, mod)
-        src  = find (bld, mod + mext)
-        slug = mod.replace('_', '-')
-        use  = info.requiredPackages()
-        major_version = vnum[:1]
-        if is_linux() and mod == 'juce_graphics':
-            use += ['FREETYPE2']
-
-        obj = bld (
-            features  = "cxx cxxshlib",
-            source    = list (set (src)),
-            name      = '%s-%s' % (slug + postfix.replace('_', '-'), major_version),
-            target    = '%s-%s' % (mod + postfix, major_version),
-            use       = list (set (use)),
-            includes  = [],
-            linkflags = info.linkFlags()
-        )
-
-        if len(vnum) > 0:
-            obj.vnum = vnum
-
-        libs += [obj]
-
-    return libs
-
-def create_unified_lib (bld, tgt, mods, feats="cxx cxxshlib"):
-
-    mext = extension()
-
-    mod_path = bld.env.JUCE_MODULE_PATH
-    src = []
-    ug  = []
-
-    for mod in mods:
-        src += [mod_path + "/" + mod + "/" + mod + mext]
-        ug += get_use_libs (mod)
-
-    # strip out duplicate use libs
-    us = list (set (us))
-
-    obj = bld (
-        features    = feats,
-        source      = src,
-        includes    = [],
-        name        = tgt,
-        target      = tgt,
-        use         = us
-    )
-
-    return obj
-
-def module_path (ctx):
-    return ctx.env.JUCE_MODULE_PATH
-
-def available_modules (ctx):
-    return os.listdir (module_path (ctx))
-
 
 class IntrojucerProject:
     ctx  = None
@@ -661,7 +632,6 @@ class IntrojucerProject:
                 object.mac_app = True
 
         return object
-
 
 from waflib import TaskGen
 @TaskGen.extension ('.mm')
