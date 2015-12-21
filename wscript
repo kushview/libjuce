@@ -47,10 +47,10 @@ library_modules = '''
     juce_cryptography
     juce_data_structures
     juce_events
+    juce_opengl
     juce_graphics
     juce_gui_basics
     juce_gui_extra
-    juce_opengl
     juce_video
 '''.split()
 
@@ -79,34 +79,8 @@ def options(opts):
     modules_options(opts)
 
 def configure(conf):
+    conf.prefer_clang()
     conf.load ('compiler_c compiler_cxx juce')
-
-    # Put some defines in a header file
-    conf.define ("JUCE_VERSION", VERSION)
-    conf.define ("JUCE_MAJOR_VERSION",JUCE_MAJOR_VERSION)
-    conf.define ("JUCE_MINOR_VERSION",JUCE_MINOR_VERSION)
-    conf.define ("JUCE_MICRO_VERSION",JUCE_MICRO_VERSION)
-    conf.define ("JUCE_EXTRA_VERSION",JUCE_EXTRA_VERSION)
-    conf.define ("UPSTREAM_VERSION", JUCE_VERSION);
-    conf.write_config_header ('Version.h')
-
-    conf.check_inline()
-
-    conf.env.DATADIR    = conf.env.PREFIX + '/share'
-    conf.env.LIBDIR     = conf.env.PREFIX + '/lib'
-    conf.env.BINDIR     = conf.env.PREFIX + '/bin'
-    conf.env.INCLUDEDIR = conf.env.PREFIX + '/include'
-
-    # Setup JUCE
-    conf.load ('juce')
-    conf.env.JUCE_MODULE_PATH = 'src/modules' # need an option for this
-    conf.check_cxx11()
-
-    # Export version to the environment
-    conf.env.JUCE_MAJOR_VERSION = JUCE_MAJOR_VERSION
-    conf.env.JUCE_MINOR_VERSION = JUCE_MINOR_VERSION
-    conf.env.JUCE_MICRO_VERSION = JUCE_MICRO_VERSION
-    conf.env.APPNAME            = APPNAME
 
     # Store options in environment
     conf.env.BUILD_DEBUGGABLE   = conf.options.debug
@@ -116,8 +90,27 @@ def configure(conf):
     conf.env.BUILD_STATIC       = conf.options.static
     conf.env.INSTALL_HEADERS    = conf.options.install_headers
 
+    conf.env.DATADIR    = conf.env.PREFIX + '/share'
+    conf.env.LIBDIR     = conf.env.PREFIX + '/lib'
+    conf.env.BINDIR     = conf.env.PREFIX + '/bin'
+    conf.env.INCLUDEDIR = conf.env.PREFIX + '/include'
+
+    # Write out the version header
+    conf.define ("JUCE_VERSION", VERSION)
+    conf.define ("JUCE_MAJOR_VERSION",JUCE_MAJOR_VERSION)
+    conf.define ("JUCE_MINOR_VERSION",JUCE_MINOR_VERSION)
+    conf.define ("JUCE_MICRO_VERSION",JUCE_MICRO_VERSION)
+    conf.define ("JUCE_EXTRA_VERSION",JUCE_EXTRA_VERSION)
+    conf.write_config_header ('modules/version.h')
+
+    conf.env.JUCE_MODULE_PATH = 'src/modules' # need an option for this
+    conf.check_cxx11()
+    conf.check_inline()
+
     if juce.is_mac():
+        #library_modules.remove('juce_opengl')
         pass
+        
     elif juce.is_linux():
         if conf.options.system_png:
             conf.check_cfg (package='libpng', uselib_store='PNG', args=['--libs', '--cflags'], mandatory=True)
@@ -210,11 +203,11 @@ def install_module_headers (bld, modules):
                            bld.path.ant_glob ("src/modules/" + mod + "/**/*.h"), \
                            relative_trick=True, cwd=bld.path.find_dir ('src'))
 
-def install_misc_header(bld, h, subpath=''):
+def install_misc_header (bld, h, subpath=''):
     p = get_include_path(bld) + subpath
     bld.install_files (p, h)
 
-def module_slug(mod, debug=False):
+def module_slug (mod, debug=False):
     slug = mod.replace('_', '-')
     if debug: slug += '-debug'
     slug += '-%s' % JUCE_MAJOR_VERSION
