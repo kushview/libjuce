@@ -110,8 +110,9 @@ def prefer_clang(self):
     '''Use clang by default on non-windows'''
     if is_windows(): return
     if not 'CC' in os.environ or not 'CXX' in os.environ:
-        self.env.CC  = 'clang'
-        self.env.CXX = 'clang++'
+        if None != self.find_program ('clang', mandatory=False):
+            self.env.CC  = 'clang'
+            self.env.CXX = 'clang++'
 
 def get_module_info (ctx, mod):
     nodes = find (ctx, os.path.join (mod, 'juce_module_info'))
