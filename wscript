@@ -51,13 +51,6 @@ library_modules = '''
     juce_video
 '''.split()
 
-
-def modules_options(opts):
-    opts.add_option('--system-jpeg', default=False, action="store_true", \
-        dest="system_jpeg", help="Use system JPEG")
-    opts.add_option('--system-png', default=False, action="store_true", \
-        dest="system_png", help="Use system PNG")
-
 def options(opts):
     opts.load ('compiler_c compiler_cxx juce')
 
@@ -73,8 +66,10 @@ def options(opts):
         dest="static", help="Build Static Libraries [ Default: False ]")
     opts.add_option('--ziptype', default='gz', type='string', \
         dest='ziptype', help="Zip type for waf dist (gz/bz2/zip) [ Default: gz ]")
-
-    modules_options(opts)
+    opts.add_option('--system-jpeg', default=False, action="store_true", \
+        dest="system_jpeg", help="Use system JPEG")
+    opts.add_option('--system-png', default=False, action="store_true", \
+        dest="system_png", help="Use system PNG")
 
 def configure (conf):
     conf.prefer_clang()

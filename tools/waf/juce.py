@@ -154,13 +154,13 @@ def configure (conf):
 
     # define a library pattern suitable for plugins/modules
     # (e.g. remove the 'lib' from libplugin.so)
-    pat = conf.env['cshlib_PATTERN']
+    pat = conf.env.cshlib_PATTERN
     if not pat:
-        pat = conf.env['cxxshlib_PATTERN']
+        pat = conf.env.cxxshlib_PATTERN
     if pat.startswith('lib'):
         pat = pat[3:]
-    conf.env['plugin_PATTERN'] = pat
-    conf.env['plugin_EXT'] = pat[pat.rfind('.'):]
+    conf.env.plugin_PATTERN = pat
+    conf.env.plugin_EXT = pat[pat.rfind('.'):]
 
     # do platform stuff
     if is_linux():
