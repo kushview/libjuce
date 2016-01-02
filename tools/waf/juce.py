@@ -115,6 +115,7 @@ def prefer_clang(self):
             self.env.CXX = 'clang++'
 
 def get_module_info (ctx, mod):
+    mod = mod #mod.replace ('juce_', '')
     nodes = find (ctx, os.path.join (mod, 'juce_module_info'))
     infofile = "%s" % nodes[0].relpath()
     return ModuleInfo (infofile)
@@ -163,7 +164,7 @@ def configure (conf):
     conf.env.plugin_EXT = pat[pat.rfind('.'):]
 
     # do platform stuff
-    if is_linux():
+    if is_linux() and not 'mingw32' in conf.env.CXX[0]:
         conf.define ('LINUX', 1)
     elif is_mac():
         conf.env.FRAMEWORK_ACCELERATE     = 'Accelerate'
@@ -189,7 +190,6 @@ def extension():
 
 def find (ctx, pattern):
     '''find resources in the juce module path'''
-
     if len(pattern) <= 0:
         return None
 
@@ -229,28 +229,23 @@ def build_modular_libs (bld, mods, vnum='4.0.2', postfix=''):
 
     return libs
 
-def build_unified_library (bld, tgt, mods, feats="cxx cxxshlib"):
-    mext = extension()
-
-    mod_path = bld.env.JUCE_MODULE_PATH
-    src = []
-    ug  = []
-
-    for mod in mods:
-        src += [mod_path + "/" + mod + "/" + mod + mext]
-        ug += get_use_libs (mod)
-
-    # strip out duplicate use libs
-    us = list (set (us))
-
+def build_unified_library (bld, tgt, mods, features="cxx cxxshlib"):
     obj = bld (
-        features    = feats,
-        source      = src,
-        includes    = [],
+        features    = features,
         name        = tgt,
         target      = tgt,
-        use         = us
+        source      = [],
+        includes    = [],
+        linkflags   = [],
+        use         = []
     )
+
+    mext = extension()
+
+    for mod in mods:
+        info = get_module_info(bld, mod)
+        obj.source += find (bld, mod + mext)
+        obj.linkflags += info.mingwLibs()
 
     return obj
 
@@ -328,6 +323,17 @@ class ModuleInfo:
             return libs
 
         for lib in self.data ['LinuxLibs'].split():
+            l = '-l%s' % lib
+            libs.append (l)
+
+        return libs
+
+    def mingwLibs (self):
+        libs = []
+        if None == self.data or not 'mingwLibs' in self.data:
+            return libs
+        return libs
+        for lib in self.data ['mingwLibs'].split():
             l = '-l%s' % lib
             libs.append (l)
 

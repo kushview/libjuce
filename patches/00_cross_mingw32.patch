@@ -1,0 +1,62 @@
+From f75b37f27cd3fdb420f4ece40beb6c92189a2d0e Mon Sep 17 00:00:00 2001
+From: "Michael R. Fisher" <mfisher@kushview.net>
+Date: Sat, 2 Jan 2016 02:38:54 -0500
+Subject: [PATCH] Minor tweaks that allow compiling with cross mingw23
+
+- Don't define macros that are already defined
+- Include the exact <GL/gl.h> that is found on the filesystem. Linux
+  file systems are usually case-sensitive
+---
+ modules/juce_audio_basics/juce_audio_basics.cpp    | 2 +-
+ modules/juce_core/native/juce_BasicNativeHeaders.h | 4 +++-
+ modules/juce_opengl/juce_opengl.h                  | 6 +++++-
+ 3 files changed, 9 insertions(+), 3 deletions(-)
+
+diff --git a/modules/juce_audio_basics/juce_audio_basics.cpp b/modules/juce_audio_basics/juce_audio_basics.cpp
+index bf6791f..56ed067 100644
+--- a/modules/juce_audio_basics/juce_audio_basics.cpp
++++ b/modules/juce_audio_basics/juce_audio_basics.cpp
+@@ -37,7 +37,7 @@
+  #define JUCE_USE_SSE_INTRINSICS 0
+ #endif
+ 
+-#if JUCE_MINGW
++#if JUCE_MINGW && ! defined (alloca)
+  #define alloca __builtin_alloca
+ #endif
+ 
+diff --git a/modules/juce_core/native/juce_BasicNativeHeaders.h b/modules/juce_core/native/juce_BasicNativeHeaders.h
+index 034f851..28971b5 100644
+--- a/modules/juce_core/native/juce_BasicNativeHeaders.h
++++ b/modules/juce_core/native/juce_BasicNativeHeaders.h
+@@ -114,7 +114,9 @@
+  #if JUCE_MINGW
+   #include <basetyps.h>
+   #include <sys/time.h>
+-  #define alloca __builtin_alloca
++  #if ! defined (alloca)
++    #define alloca __builtin_alloca
++  #endif
+  #else
+   #include <crtdbg.h>
+   #include <comutil.h>
+diff --git a/modules/juce_opengl/juce_opengl.h b/modules/juce_opengl/juce_opengl.h
+index 5c627ae..b2a2bcf 100644
+--- a/modules/juce_opengl/juce_opengl.h
++++ b/modules/juce_opengl/juce_opengl.h
+@@ -43,7 +43,11 @@
+   #define WINGDIAPI __declspec(dllimport)
+   #define CLEAR_TEMP_WINGDIAPI 1
+  #endif
+- #include <gl/GL.h>
++ #if JUCE_MINGW
++  #include <GL/gl.h>
++ #else
++  #include <gl/GL.h>
++ #endif
+  #ifdef CLEAR_TEMP_WINGDIAPI
+   #undef WINGDIAPI
+   #undef CLEAR_TEMP_WINGDIAPI
+-- 
+2.1.4
+

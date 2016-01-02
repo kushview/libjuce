@@ -18,8 +18,9 @@ from subprocess import call
 sys.path.insert(0, "tools/waf")
 import juce
 from juce import IntrojucerProject as Project
+from juce import ModuleInfo as ModuleInfo
 
-JUCE_VERSION  = '4.1.0'
+JUCE_VERSION = '4.1.0'
 JUCE_MAJOR_VERSION = JUCE_VERSION[0]
 JUCE_MINOR_VERSION = JUCE_VERSION[2]
 JUCE_MICRO_VERSION = JUCE_VERSION[4]
@@ -50,6 +51,8 @@ library_modules = '''
     juce_gui_extra
     juce_video
 '''.split()
+
+mingw32_libs = 'gdi32 uuid wsock32 wininet version ole32 ws2_32 oleaut32 imm32 comdlg32 shlwapi rpcrt4 winmm opengl32'
 
 def options(opts):
     opts.load ('compiler_c compiler_cxx juce')
@@ -99,11 +102,11 @@ def configure (conf):
     conf.check_cxx11()
     conf.check_inline()
 
+    cross_mingw = 'mingw32' in conf.env.CXX[0]
     if juce.is_mac():
-        #library_modules.remove('juce_opengl')
         pass
 
-    elif juce.is_linux():
+    elif not cross_mingw and juce.is_linux():
         if conf.options.system_png:
             conf.check_cfg (package='libpng', uselib_store='PNG', args=['--libs', '--cflags'], mandatory=True)
 
@@ -121,8 +124,9 @@ def configure (conf):
         conf.check_cfg (package='alsa', uselib_store='ALSA', args=['--libs', '--cflags'], mandatory=True)
         conf.check_cfg (package='jack', uselib_store='JACK', args=['--libs', '--cflags'], mandatory=False)
 
-    elif juce.is_windows():
-        pass
+    elif cross_mingw or juce.is_windows():
+        for l in mingw32_libs.split():
+            conf.check (lib=l, uselib_store=l.upper(), mandatory=True)
 
     conf.write_config_header ("libjuce_config.h")
 
@@ -132,6 +136,11 @@ def configure (conf):
     conf.define ('JUCE_USE_JACK', len(conf.env.LIB_JACK) > 0)
     conf.define ('JUCE_INCLUDE_PNGLIB_CODE', len(conf.env.LIB_PNG) <= 0)
     conf.define ('JUCE_INCLUDE_JPEGLIB_CODE', len(conf.env.LIB_JPEG) <= 0)
+
+    conf.define ('JUCE_WASAPI', False)
+    conf.define ('JUCE_DIRECTSOUND', False)
+    conf.define ('JUCE_WASAPI_EXCLUSIVE', False)
+
     conf.define ('JUCE_STANDALONE_APPLICATION', 0)
     for mod in library_modules:
         conf.define('JUCE_MODULE_AVAILABLE_%s' % mod, True)
@@ -189,6 +198,13 @@ def install_misc_header (bld, h, subpath=''):
     p = get_include_path(bld) + subpath
     bld.install_files (p, h)
 
+def maybe_install_headers(bld):
+    if bld.env.INSTALL_HEADERS:
+        install_module_headers (bld, library_modules)
+        for header in ['juce/juce.h', 'juce/AppConfig.h', 'juce/JuceHeader.h']:
+            install_misc_header (bld, header)
+        install_misc_header (bld, 'build/modules/config.h', '/modules')
+
 def module_slug (mod, debug=False):
     slug = mod.replace('_', '-')
     if debug: slug += '-debug'
@@ -200,8 +216,19 @@ def library_slug(mod, debug=False):
     slug = mod + '_debug-%s' % mv if debug else mod + '-%s' % mv
     return slug
 
+def build_cross_mingw(bld):
+    obj = juce.build_unified_library(bld, 'juce', library_modules)
+    obj.vnum = '4.1.0'
+    obj.includes += ['juce', 'src']
+    obj.use += mingw32_libs.upper().split()
+    maybe_install_headers (bld)
+
 def build_modules(bld):
+    if juce.is_linux() and 'w64-mingw' in bld.env.CXX[0]:
+        return build_cross_mingw(bld)
+
     postfix = '_debug' if bld.env.BUILD_DEBUGGABLE else ''
+
     libs = juce.build_modular_libs (bld, library_modules, JUCE_VERSION, postfix)
     for lib in libs:
         lib.includes += ['juce', 'src']
@@ -257,7 +284,7 @@ def build (bld):
         build_modules(bld)
 
     # testing linkage against module libs
-    disable_test_app = False
+    disable_test_app = juce.is_windows() or 'w64-mingw' in bld.env.CXX[0]
     if not disable_test_app:
         testapp = Project (bld, 'extras/TestApp/TestApp.jucer')
         if juce.is_linux():
