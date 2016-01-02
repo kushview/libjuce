@@ -218,9 +218,25 @@ def library_slug(mod, debug=False):
 
 def build_cross_mingw(bld):
     obj = juce.build_unified_library(bld, 'juce', library_modules)
-    obj.vnum = '4.1.0'
+    obj.vnum = JUCE_VERSION
     obj.includes += ['juce', 'src']
     obj.use += mingw32_libs.upper().split()
+    bld (
+        features     = 'subst',
+        source       = 'juce-module.pc.in',
+        target       = 'juce.pc',
+        install_path = bld.env.LIBDIR + '/pkgconfig',
+        MAJOR_VERSION= JUCE_MAJOR_VERSION,
+        PREFIX       = bld.env.PREFIX,
+        INCLUDEDIR   = bld.env.INCLUDEDIR,
+        LIBDIR       = bld.env.LIBDIR,
+        DEPLIBS      = '',
+        REQUIRED     = '',
+        NAME         = 'libJUCE',
+        DESCRIPTION  = 'libJUCE',
+        VERSION      = JUCE_VERSION,
+    )
+
     maybe_install_headers (bld)
 
 def build_modules(bld):
