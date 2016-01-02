@@ -312,9 +312,7 @@ def build (bld):
         elif is_mingw32:
             juce_useflags = []
 
-        for mod in library_modules:
-            pkgslug = module_slug(mod, bld.env.BUILD_DEBUGGABLE)
-            juce_useflags.append ('juce')
+
 
         obj = bld.program (
             source   = testapp.getProjectCode(),
@@ -327,6 +325,9 @@ def build (bld):
         )
 
         if juce.is_linux() and not is_mingw32:
+            for mod in library_modules:
+                pkgslug = module_slug(mod, bld.env.BUILD_DEBUGGABLE)
+                juce_useflags.append (pkgslug)
             obj.linkflags = '-Wl,-rpath,$ORIGIN'
         elif juce.is_mac():
             obj.target  = 'Applications/TestApp'
