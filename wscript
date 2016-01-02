@@ -279,11 +279,7 @@ def build_modules(bld):
             VERSION      = module.version(),
         )
 
-    if bld.env.INSTALL_HEADERS:
-        install_module_headers (bld, library_modules)
-        for header in ['juce/juce.h', 'juce/AppConfig.h', 'juce/JuceHeader.h']:
-            install_misc_header (bld, header)
-        install_misc_header (bld, 'build/modules/config.h', '/modules')
+    maybe_install_headers (bld)
 
 def build_project (bld, project, name):
     node = bld.path.find_resource (project)
