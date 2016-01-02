@@ -282,11 +282,16 @@ def build_modules(bld):
     maybe_install_headers (bld)
 
 def build_project (bld, project, name):
+    is_mingw32 = juce.is_windows() or 'mingw' in bld.env.CXX[0]
     node = bld.path.find_resource (project)
     introjucer = juce.IntrojucerProject (bld, node.relpath())
     obj = introjucer.compile (bld)
-    obj.use += ['FREETYPE', 'CURL']
-    make_desktop (bld, name)
+    if juce.is_linux() and not is_mingw32:
+        obj.use += ['FREETYPE', 'CURL']
+        make_desktop (bld, name)
+    elif is_mingw32:
+        obj.use = mingw32_libs.upper().split()
+        obj.linkflags = ''
     return obj
 
 def build (bld):
@@ -296,19 +301,20 @@ def build (bld):
         build_modules(bld)
 
     # testing linkage against module libs
-    disable_test_app = juce.is_windows() or 'w64-mingw' in bld.env.CXX[0]
+    is_mingw32 = juce.is_windows() or 'w64-mingw' in bld.env.CXX[0]
+    disable_test_app = False
     if not disable_test_app:
         testapp = Project (bld, 'extras/TestApp/TestApp.jucer')
-        if juce.is_linux():
+        if juce.is_linux() and not is_mingw32:
             juce_useflags = ['X11', 'XEXT', 'ALSA', 'GL', 'FREETYPE', 'CURL']
         elif juce.is_mac():
             juce_useflags = ['COCOA', 'IO_KIT']
-        else:
+        elif is_mingw32:
             juce_useflags = []
 
         for mod in library_modules:
             pkgslug = module_slug(mod, bld.env.BUILD_DEBUGGABLE)
-            juce_useflags.append (pkgslug)
+            juce_useflags.append ('juce')
 
         obj = bld.program (
             source   = testapp.getProjectCode(),
@@ -316,14 +322,19 @@ def build (bld):
             name     = 'TestApp',
             target   = 'testapp',
             use      = juce_useflags,
-            linkflags= '-Wl,-rpath,$ORIGIN',
+            linkflags= '',
             install_path = None,
         )
 
-        if juce.is_mac():
+        if juce.is_linux() and not is_mingw32:
+            obj.linkflags = '-Wl,-rpath,$ORIGIN'
+        elif juce.is_mac():
             obj.target  = 'Applications/TestApp'
             obj.mac_app = True
             obj.install_path = os.getcwd() + '/build/Applications' # workaround
+        elif is_mingw32:
+            pass
+
 
         bld.add_group()
 

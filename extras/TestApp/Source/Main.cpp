@@ -27,7 +27,7 @@ public:
     void initialise (const String& commandLine)
     {
         // This method is where you should put your application's initialisation code..
-
+        Logger::writeToLog ("Hello from Test App");
         mainWindow = new MainWindow();
     }
 
