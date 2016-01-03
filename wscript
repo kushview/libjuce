@@ -230,7 +230,7 @@ def build_cross_mingw(bld):
         PREFIX       = bld.env.PREFIX,
         INCLUDEDIR   = bld.env.INCLUDEDIR,
         LIBDIR       = bld.env.LIBDIR,
-        DEPLIBS      = '-l%s-%s' % (obj.target, JUCE_MAJOR_VERSION),
+        DEPLIBS      = '-l%s-%s' % ('juce', JUCE_MAJOR_VERSION),
         REQUIRED     = '',
         NAME         = 'libJUCE',
         DESCRIPTION  = 'libJUCE',
