@@ -310,7 +310,7 @@ def build (bld):
         elif juce.is_mac():
             juce_useflags = ['COCOA', 'IO_KIT']
         elif is_mingw32:
-            juce_useflags = []
+            juce_useflags = ['JUCE']
 
         obj = bld.program (
             source   = testapp.getProjectCode(),
