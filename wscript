@@ -312,8 +312,6 @@ def build (bld):
         elif is_mingw32:
             juce_useflags = []
 
-
-
         obj = bld.program (
             source   = testapp.getProjectCode(),
             includes = ['.', 'juce', 'src'],
@@ -335,8 +333,7 @@ def build (bld):
             obj.install_path = os.getcwd() + '/build/Applications' # workaround
         elif is_mingw32:
             pass
-
-
+        
         bld.add_group()
 
     if bld.env.BUILD_INTROJUCER:
