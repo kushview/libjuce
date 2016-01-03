@@ -333,7 +333,7 @@ def build (bld):
             obj.install_path = os.getcwd() + '/build/Applications' # workaround
         elif is_mingw32:
             pass
-        
+
         bld.add_group()
 
     if bld.env.BUILD_INTROJUCER:
