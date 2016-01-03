@@ -218,6 +218,7 @@ def library_slug(mod, debug=False):
 
 def build_cross_mingw(bld):
     obj = juce.build_unified_library(bld, 'juce', library_modules)
+    obj.name = 'libjuce'
     obj.vnum = JUCE_VERSION
     obj.includes += ['juce', 'src']
     obj.use += mingw32_libs.upper().split()
@@ -310,7 +311,7 @@ def build (bld):
         elif juce.is_mac():
             juce_useflags = ['COCOA', 'IO_KIT']
         elif is_mingw32:
-            juce_useflags = ['JUCE']
+            juce_useflags = ['libjuce']
 
         obj = bld.program (
             source   = testapp.getProjectCode(),
