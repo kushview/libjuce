@@ -20,7 +20,7 @@ import juce
 from juce import IntrojucerProject as Project
 from juce import ModuleInfo as ModuleInfo
 
-JUCE_VERSION = '4.1.0'
+JUCE_VERSION = '4.2.0'
 JUCE_MAJOR_VERSION = JUCE_VERSION[0]
 JUCE_MINOR_VERSION = JUCE_VERSION[2]
 JUCE_MICRO_VERSION = JUCE_VERSION[4]
@@ -146,6 +146,7 @@ def configure (conf):
         conf.define('JUCE_MODULE_AVAILABLE_%s' % mod, True)
     conf.write_config_header ('modules/config.h', 'LIBJUCE_MODULES_CONFIG_H')
 
+    conf.define('JUCE_APP_CONFIG_HEADER', 'modules/config.h')
     conf.env.JUCE_MODULE_PATH = 'src/modules'
     conf.load('juce')
     conf.env.append_unique ('CXXFLAGS', '-I' + os.getcwd() + '/build')
@@ -248,7 +249,7 @@ def build_modules(bld):
 
     libs = juce.build_modular_libs (bld, library_modules, JUCE_VERSION, postfix)
     for lib in libs:
-        lib.includes += ['juce', 'src']
+        lib.includes += ['juce', 'src/modules']
 
     # Create pkg-config files for all built modules
     is_debug = bld.env.BUILD_DEBUGGABLE
@@ -283,12 +284,17 @@ def build_modules(bld):
     maybe_install_headers (bld)
 
 def build_project (bld, project, name):
+
     is_mingw32 = juce.is_windows() or 'mingw' in bld.env.CXX[0]
     node = bld.path.find_resource (project)
     introjucer = juce.IntrojucerProject (bld, node.relpath())
     obj = introjucer.compile (bld)
+    obj.includes.append ('src/modules')
+    obj.env = bld.env.clone()
+    
     if juce.is_linux() and not is_mingw32:
-        obj.use += ['FREETYPE', 'CURL']
+        obj.use += ['FREETYPE', 'CURL', 'X11', 'XEXT']
+        obj.linkflags = ['-lpthread', '-ldl']
         make_desktop (bld, name)
     elif is_mingw32:
         obj.use = mingw32_libs.upper().split()
@@ -315,7 +321,7 @@ def build (bld):
 
         obj = bld.program (
             source   = testapp.getProjectCode(),
-            includes = ['.', 'juce', 'src'],
+            includes = ['.', 'juce', 'src', 'src/modules'],
             name     = 'TestApp',
             target   = 'testapp',
             use      = juce_useflags,
@@ -338,7 +344,7 @@ def build (bld):
         bld.add_group()
 
     if bld.env.BUILD_INTROJUCER:
-        build_project (bld, 'src/extras/Introjucer/Introjucer.jucer', 'Introjucer')
+        build_project (bld, 'src/extras/Projucer/Projucer.jucer', 'Introjucer')
     if bld.env.BUILD_JUCE_DEMO:
         build_project (bld, 'src/examples/Demo/JuceDemo.jucer', 'JuceDemo')
 

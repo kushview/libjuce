@@ -115,8 +115,7 @@ def prefer_clang(self):
             self.env.CXX = 'clang++'
 
 def get_module_info (ctx, mod):
-    mod = mod #mod.replace ('juce_', '')
-    nodes = find (ctx, os.path.join (mod, 'juce_module_info'))
+    nodes = find (ctx, os.path.join (mod, '%s.h' % mod))
     infofile = "%s" % nodes[0].relpath()
     return ModuleInfo (infofile)
 
@@ -196,7 +195,7 @@ def find (ctx, pattern):
     pattern = '%s/**/%s' % (ctx.env.JUCE_MODULE_PATH, pattern)
     return ctx.path.ant_glob (pattern)
 
-def build_modular_libs (bld, mods, vnum='4.0.2', postfix=''):
+def build_modular_libs (bld, mods, vnum='4.2.0', postfix=''):
     '''compile the passed modules into individual targets. returns
         a list of waf bld objects in case further setup is required'''
     libs = []
@@ -255,6 +254,26 @@ def module_path (ctx):
 def available_modules (ctx):
     return os.listdir (module_path (ctx))
 
+def extract_module_atts (module_header):
+    try:
+        f = open (module_header)
+        s = f.read()
+        f.close()
+
+        atts = { }
+        start = s.index('BEGIN_JUCE_MODULE_DECLARATION') + len('BEGIN_JUCE_MODULE_DECLARATION')
+        end = s.index('END_JUCE_MODULE_DECLARATION', start)
+
+        for line in s[start:end].split('\n'):
+            if len(line) <= 0: continue
+            keypair = line.split(':')
+            if len(keypair) != 2: continue
+            atts[keypair[0].strip()] = keypair[1].strip()
+
+        return atts
+    except ValueError:
+        return { }
+
 class ModuleInfo:
     data     = None
     infofile = None
@@ -262,16 +281,17 @@ class ModuleInfo:
     def __init__ (self, juce_info_file):
         if os.path.exists (juce_info_file):
             self.infofile = juce_info_file
-            res = open (self.infofile)
-            if None != res:
-                self.data = json.load (res)
-                res.close()
+            self.data = extract_module_atts(juce_info_file)
+            # res = open (self.infofile)
+            # if None != res:
+            #     self.data = json.load (res)
+            #     res.close()
 
     def isValid (self):
-        return self.data != None and self.infofile != None
+        return self.data != None and self.data != { } and self.infofile != None
 
     def id (self):
-        return self.data ['id']
+        return self.data ['ID']
 
     def name (self):
         return self.data ['name']
@@ -289,12 +309,14 @@ class ModuleInfo:
         if not len(self.data ['dependencies']) > 0:
             return []
 
-        deps = []
-        for dep in self.data ['dependencies']:
-            if None != dep ['id']:
-                deps.append (dep ['id'])
+        # TODO: make work with module header source and old JSON source
+        # deps = []
+        # for dep in self.data ['dependencies']:
+        #     if None != dep ['id']:
+        #         deps.append (dep ['id'])
+        # return deps
 
-        return deps
+        return self.data['dependencies'].split()
 
     def requiredPackages (self, debug=False):
         pkgs = []
@@ -484,33 +506,32 @@ class IntrojucerProject:
                 module_path = os.path.join (self.getProjectDir(), 'JuceLibraryCode/modules/%s' % mod)
             else:
                 module_path = self.getModulePath (mod)
+            srcfile = os.path.join (module_path, '%s.cpp' % mod)
+            code.append(srcfile)
 
-            infofile = os.path.join (module_path, 'juce_module_info')
-            obj = ModuleInfo (infofile)
-
-            if os.path.exists (infofile):
-                res = open (infofile)
-                data = json.load (res)
-                res.close()
-
-                if "compile" in data:
-                    for i in data["compile"]:
-                        if is_mac(): target_key = 'xcode'
-                        else: target_key = '! xcode'
-
-                        if 'target' in i and i['target'] == target_key:
-                            f = '%s/%s' % (module_path, i['file'])
-                            f = os.path.relpath (unicodedata.normalize("NFKD", f).encode ('ascii','ignore'))
-                            code.append (f)
-                        elif 'file' in i and not 'target' in i:
-                            f = '%s/%s' % (module_path, i["file"])
-                            f = os.path.relpath(unicodedata.normalize("NFKD", f).encode('ascii','ignore'))
-                            code.append (f)
-            else:
-                print "Module file doesn't exist: " + infofile
-                print "Project Dir: " + self.getProjectDir()
-                print "Module Path = " + module_path
-                exit(1)
+            # if os.path.exists (infofile):
+            #     res = open (infofile)
+            #     data = json.load (res)
+            #     res.close()
+            #
+            #     if "compile" in data:
+            #         for i in data["compile"]:
+            #             if is_mac(): target_key = 'xcode'
+            #             else: target_key = '! xcode'
+            #
+            #             if 'target' in i and i['target'] == target_key:
+            #                 f = '%s/%s' % (module_path, i['file'])
+            #                 f = os.path.relpath (unicodedata.normalize("NFKD", f).encode ('ascii','ignore'))
+            #                 code.append (f)
+            #             elif 'file' in i and not 'target' in i:
+            #                 f = '%s/%s' % (module_path, i["file"])
+            #                 f = os.path.relpath(unicodedata.normalize("NFKD", f).encode('ascii','ignore'))
+            #                 code.append (f)
+            # else:
+            #     print "Module file doesn't exist: " + infofile
+            #     print "Project Dir: " + self.getProjectDir()
+            #     print "Module Path = " + module_path
+            #     exit(1)
 
 
         # Add binary data file if it exists
