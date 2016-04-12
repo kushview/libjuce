@@ -1,5 +1,5 @@
 [Desktop Entry]
-Name=Introjucer
+Name=Projucer
 Comment=JUCE Project Builder
 Exec=@JUCE_BIN@/Introjucer
 Icon=@JUCE_DATA@/icons/juce_icon.xpm
