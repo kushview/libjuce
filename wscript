@@ -221,8 +221,9 @@ def build_cross_mingw(bld):
     obj = juce.build_unified_library(bld, 'juce', library_modules)
     obj.name = 'libjuce'
     obj.vnum = JUCE_VERSION
-    obj.includes += ['juce', 'src']
+    obj.includes += ['juce', 'src/modules']
     obj.use += mingw32_libs.upper().split()
+    obj.cxxflags = ['-DJUCE_APP_CONFIG_HEADER="modules/config.h"']
     bld (
         features     = 'subst',
         source       = 'juce-module.pc.in',
