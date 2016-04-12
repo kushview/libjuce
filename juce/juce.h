@@ -3,6 +3,7 @@
 #define LIBJUCE_H
 
 #include "modules/config.h"
+#define JUCE_GLOBAL_MODULE_SETTINGS_INCLUDED 1
 
 #include "modules/juce_audio_basics/juce_audio_basics.h"
 #include "modules/juce_audio_devices/juce_audio_devices.h"
@@ -21,7 +22,7 @@
 #include "modules/juce_video/juce_video.h"
 
 #if ! DONT_SET_USING_JUCE_NAMESPACE
- using namespace juce;
+  using namespace juce;
 #endif
 
 #endif
