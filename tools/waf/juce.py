@@ -316,7 +316,7 @@ class ModuleInfo:
         #         deps.append (dep ['id'])
         # return deps
 
-        return self.data['dependencies'].split()
+        return self.data['dependencies'].replace(',',' ').split()
 
     def requiredPackages (self, debug=False):
         pkgs = []

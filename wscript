@@ -259,6 +259,7 @@ def build_modules(bld):
         module = juce.get_module_info (bld, m)
         slug = module_slug(m, is_debug)
         required_packages = ' '.join (module.requiredPackages (is_debug))
+        print(required_packages)
         deplibs = ' '.join (module.linuxLibs())
 
         if m == 'juce_core':
