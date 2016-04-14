@@ -50,6 +50,7 @@ library_modules = '''
     juce_gui_basics
     juce_gui_extra
     juce_osc
+    juce_tracktion_marketplace
     juce_video
 '''.split()
 

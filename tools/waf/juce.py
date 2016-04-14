@@ -87,6 +87,7 @@ def check_juce_cfg (self, mods=None, major_version='4', module_prefix='juce_', m
         juce_gui_extra
         juce_opengl
         juce_osc
+        juce_tracktion_marketplace
         juce_video'''.split()
     else: modules = mods
 
