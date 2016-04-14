@@ -86,6 +86,7 @@ def check_juce_cfg (self, mods=None, major_version='4', module_prefix='juce_', m
         juce_gui_basics
         juce_gui_extra
         juce_opengl
+        juce_osc
         juce_video'''.split()
     else: modules = mods
 
@@ -341,10 +342,10 @@ class ModuleInfo:
     def linuxLibs (self):
         libs = []
 
-        if None == self.data or not is_linux() or not 'LinuxLibs' in self.data:
+        if None == self.data or not is_linux() or not 'linuxLibs' in self.data:
             return libs
 
-        for lib in self.data ['LinuxLibs'].split():
+        for lib in self.data ['linuxLibs'].split():
             l = '-l%s' % lib
             libs.append (l)
 
