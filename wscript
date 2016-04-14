@@ -206,7 +206,10 @@ def maybe_install_headers(bld):
         install_module_headers (bld, library_modules)
         for header in ['juce/juce.h', 'juce/AppConfig.h', 'juce/JuceHeader.h']:
             install_misc_header (bld, header)
+        for mod in library_modules:
+            install_misc_header (bld, "juce/%s.h" % mod.replace ('juce_', ''))
         install_misc_header (bld, 'build/modules/config.h', '/modules')
+        install_misc_header (bld, 'build/modules/version.h', '/modules')
 
 def module_slug (mod, debug=False):
     slug = mod.replace('_', '-')
