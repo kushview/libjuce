@@ -1,6 +1,16 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+''' This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public Licence as published by
+the Free Software Foundation, either version 2 of the Licence, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+file COPYING for more details. '''
+
 import json, os, platform, re, sys, unicodedata
 from xml.etree import ElementTree as ET
 from waflib.Configure import conf
@@ -181,6 +191,7 @@ def configure (conf):
         conf.env.FRAMEWORK_QuickTime      = 'QuickTime'
         conf.env.FRAMEWORK_QUARTZ_CORE    = 'QuartzCore'
         conf.env.FRAMEWORK_WEB_KIT        = 'WebKit'
+        conf.env.ARCH = ['i386']
     elif is_win32(): pass
 
 def extension():

@@ -1,10 +1,10 @@
 #!/usr/bin/evn python
 # encoding: utf-8
-# Copyright (C) 2012 Michael Fisher <mfisher31@gmail.com>
+# Copyright (C) 2012-2016 Michael Fisher <mfisher31@gmail.com>
 
 ''' This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public Licence as published by
-the Free Software Foundation, either version 3 of the Licence, or
+the Free Software Foundation, either version 2 of the Licence, or
 (at your option) any later version.
 
 This program is distributed in the hope that it will be useful,
@@ -222,7 +222,16 @@ def library_slug(mod, debug=False):
     slug = mod + '_debug-%s' % mv if debug else mod + '-%s' % mv
     return slug
 
-def build_cross_mingw(bld):
+def build_osx (bld):
+    obj = juce.build_unified_library(bld, 'juce', library_modules)
+    obj.name = "libjuce"
+    obj.vnum = JUCE_VERSION
+    obj.includes += ['juce', 'src/modules']
+    obj.cxxflags = ['-DJUCE_APP_CONFIG_HEADER="modules/config.h"']
+    obj.use = ['AUDIO_TOOLBOX', 'COCOA', 'CORE_AUDIO', 'CORE_MIDI', 'OPEN_GL', \
+               'ACCELERATE', 'IO_KIT', 'QUARTZ_CORE', 'WEB_KIT']
+
+def build_cross_mingw (bld):
     obj = juce.build_unified_library(bld, 'juce', library_modules)
     obj.name = 'libjuce'
     obj.vnum = JUCE_VERSION
@@ -247,9 +256,11 @@ def build_cross_mingw(bld):
 
     maybe_install_headers (bld)
 
-def build_modules(bld):
+def build_modules (bld):
     if juce.is_linux() and 'w64-mingw' in bld.env.CXX[0]:
         return build_cross_mingw(bld)
+    elif juce.is_mac():
+        return build_osx (bld)
 
     postfix = '_debug' if bld.env.BUILD_DEBUGGABLE else ''
 
@@ -322,7 +333,7 @@ def build (bld):
         if juce.is_linux() and not is_mingw32:
             juce_useflags = ['X11', 'XEXT', 'ALSA', 'GL', 'FREETYPE', 'CURL']
         elif juce.is_mac():
-            juce_useflags = ['COCOA', 'IO_KIT']
+            juce_useflags = ['libjuce']
         elif is_mingw32:
             juce_useflags = ['libjuce']
 
