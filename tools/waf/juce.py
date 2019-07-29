@@ -195,7 +195,7 @@ def configure (conf):
         conf.env.FRAMEWORK_AV_KIT         = 'AVKit'
         conf.env.FRAMEWORK_AV_FOUNDATION  = 'AVFoundation'
         conf.env.FRAMEWORK_CORE_MEDIA     = 'CoreMedia'
-        conf.env.ARCH = [ 'i386' ]
+        conf.env.ARCH = [ 'i386', 'x86_64' ]
     elif is_win32(): pass
 
 def extension():

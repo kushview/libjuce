@@ -235,11 +235,12 @@ def build_osx (bld):
         file = 'juce/%s.%s' % (slug, extension)
         source.append (file)
     source.append ('project/dummy.cpp')
+
     bld.shlib (
         source = source,
         includes = [ 'juce', 'src/modules' ],
         name = 'JUCE',
-        target = 'lib/juce',
+        target = 'lib/juce-%s' % JUCE_MAJOR_VERSION,
         use = ['AUDIO_TOOLBOX', 'COCOA', 'CORE_AUDIO', 'CORE_MIDI', 'OPEN_GL', \
                'ACCELERATE', 'IO_KIT', 'QUARTZ_CORE', 'WEB_KIT', 'CORE_MEDIA',
                'AV_FOUNDATION', 'AV_KIT' ],
@@ -254,6 +255,22 @@ def build_osx (bld):
         name = 'testlib',
         target = 'bin/testlib',
         install_path = None
+    )
+
+    pcobj = bld (
+        features     = 'subst',
+        source       = 'juce.pc.in',
+        target       = 'juce-%s.pc' % JUCE_MAJOR_VERSION,
+        install_path = bld.env.LIBDIR + '/pkgconfig',
+        MAJOR_VERSION= JUCE_MAJOR_VERSION,
+        PREFIX       = bld.env.PREFIX,
+        INCLUDEDIR   = bld.env.INCLUDEDIR,
+        LIBDIR       = bld.env.LIBDIR,
+        DEPLIBS      = '-ljuce-%s' % JUCE_MAJOR_VERSION,
+        REQUIRED     = '',
+        NAME         = 'JUCE',
+        DESCRIPTION  = 'JUCE library modules',
+        VERSION      = JUCE_VERSION
     )
 
 def build_cross_mingw (bld):

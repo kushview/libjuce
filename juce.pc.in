@@ -1,0 +1,12 @@
+prefix=@PREFIX@
+exec_prefix=@EXEC_PREFIX@
+libdir=@LIBDIR@
+includedir=@INCLUDEDIR@
+major_version=@MAJOR_VERSION@
+
+Name: @NAME@
+Version: @VERSION@
+Description: @DESCRIPTION@
+Cflags: -DNDEBUG=1 -I${includedir}/juce-${major_version} -I${includedir}/juce-${major_version}/juce/modules
+Libs: -L${libdir} @DEPLIBS@
+Requires: @REQUIRED@

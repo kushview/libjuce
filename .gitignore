@@ -33,3 +33,5 @@ libjuce.config
 .DS_Store
 *.xcworkspace
 xcuserdata/
+
+/dist/
