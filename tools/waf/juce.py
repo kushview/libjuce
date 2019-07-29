@@ -299,10 +299,6 @@ class ModuleInfo:
         if os.path.exists (juce_info_file):
             self.infofile = juce_info_file
             self.data = extract_module_atts(juce_info_file)
-            # res = open (self.infofile)
-            # if None != res:
-            #     self.data = json.load (res)
-            #     res.close()
 
     def isValid (self):
         return self.data != None and self.data != { } and self.infofile != None

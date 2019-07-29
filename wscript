@@ -18,7 +18,7 @@ from subprocess import call
 sys.path.insert (0, "tools/waf")
 import juce
 
-JUCE_VERSION = '5.2.1'
+JUCE_VERSION = '5.4.3'
 JUCE_MAJOR_VERSION = JUCE_VERSION[0]
 JUCE_MINOR_VERSION = JUCE_VERSION[2]
 JUCE_MICRO_VERSION = JUCE_VERSION[4]
@@ -220,9 +220,10 @@ def module_slug (mod, debug=False):
     slug += '-%s' % JUCE_MAJOR_VERSION
     return slug
 
-def library_slug (mod, debug=False):
+def library_slug (ctx, name):
     mv = JUCE_MAJOR_VERSION
-    slug = mod + '_debug-%s' % mv if debug else mod + '-%s' % mv
+    debug = ctx.env.BUILD_DEBUGGABLE
+    slug = name + '_debug-%s' % mv if debug else name + '-%s' % mv
     return slug
 
 def build_osx (bld):
@@ -240,7 +241,7 @@ def build_osx (bld):
         source = source,
         includes = [ 'juce', 'src/modules' ],
         name = 'JUCE',
-        target = 'lib/juce-%s' % JUCE_MAJOR_VERSION,
+        target = 'lib/%s' % library_slug (bld, 'juce'),
         use = ['AUDIO_TOOLBOX', 'COCOA', 'CORE_AUDIO', 'CORE_MIDI', 'OPEN_GL', \
                'ACCELERATE', 'IO_KIT', 'QUARTZ_CORE', 'WEB_KIT', 'CORE_MEDIA',
                'AV_FOUNDATION', 'AV_KIT' ],
@@ -260,18 +261,24 @@ def build_osx (bld):
     pcobj = bld (
         features     = 'subst',
         source       = 'juce.pc.in',
-        target       = 'juce-%s.pc' % JUCE_MAJOR_VERSION,
+        target       = '%s.pc' % library_slug (bld, 'juce'),
         install_path = bld.env.LIBDIR + '/pkgconfig',
         MAJOR_VERSION= JUCE_MAJOR_VERSION,
         PREFIX       = bld.env.PREFIX,
         INCLUDEDIR   = bld.env.INCLUDEDIR,
         LIBDIR       = bld.env.LIBDIR,
+        CFLAGS       = '',
         DEPLIBS      = '-ljuce-%s' % JUCE_MAJOR_VERSION,
         REQUIRED     = '',
         NAME         = 'JUCE',
         DESCRIPTION  = 'JUCE library modules',
         VERSION      = JUCE_VERSION
     )
+
+    if not bld.env.BUILD_DEBUGGABLE:
+        pcobj.CFLAGS += ' -DNDEBUG=1'
+    else:
+        pcobj.CFLAGS += ' -DDEBUG=1'
 
 def build_cross_mingw (bld):
     obj = juce.build_unified_library(bld, 'juce', library_modules)
@@ -345,19 +352,10 @@ def build_modules (bld):
 
 def build (bld):
     bld.env.INSTALL_HEADERS = bld.options.install_headers
-
+    
     if juce.is_mac():
         build_osx (bld)
 
-    # testing linkage against module libs
-    enable_test_app = True
-    if enable_test_app:
-        print "Build Test App"
-    if bld.env.BUILD_PROJUCER:
-        print "Build Projucer"
-    if bld.env.BUILD_JUCE_DEMO:
-        print "Build Demo"
-    
     maybe_install_headers (bld)
 
 def dist (ctx):
