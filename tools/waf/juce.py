@@ -62,23 +62,23 @@ def check_juce (self):
         self.end_msg ("no")
 
 @conf
-def check_cxx11 (self, required=False):
+def check_cxx_version (self, std='c++14', required=False):
     line_just = self.line_just
 
     if is_mac():
         self.check_cxx (linkflags=["-stdlib=libc++", "-lc++"],
-                        cxxflags=["-stdlib=libc++", "-std=c++11"],
+                        cxxflags=["-stdlib=libc++", "-std=%s" % std],
                         mandatory=required)
-        self.env.append_unique ("CXXFLAGS", ["-stdlib=libc++", "-std=c++11"])
+        self.env.append_unique ("CXXFLAGS", ["-stdlib=libc++", "-std=%s" % std])
         self.env.append_unique ("LINKFLAGS", ["-stdlib=libc++", "-lc++"])
     elif is_linux():
-        self.check_cxx (cxxflags=["-std=c++11"], mandatory=required)
-        self.env.append_unique ("CXXFLAGS", ["-std=c++11"])
+        self.check_cxx (cxxflags=["-std=%s" % std], mandatory=required)
+        self.env.append_unique ("CXXFLAGS", ["-std=%s" % std])
 
     self.line_just = line_just
 
 @conf
-def check_juce_cfg (self, mods=None, major_version='4', module_prefix='juce_', mandatory=False):
+def check_juce_cfg (self, mods=None, major_version='5', module_prefix='juce_', mandatory=False):
     line_just = self.line_just
 
     if mods == None: modules = '''
@@ -162,7 +162,7 @@ def configure (conf):
 
     # module path
     if not conf.env.JUCE_MODULE_PATH:
-        conf.env.JUCE_MODULE_PATH = os.path.join (os.path.expanduser("~"), 'juce/modules')
+        conf.env.JUCE_MODULE_PATH = os.path.join (os.path.expanduser("~"), 'SDKs/JUCE/modules')
 
     # define a library pattern suitable for plugins/modules
     # (e.g. remove the 'lib' from libplugin.so)
@@ -178,6 +178,7 @@ def configure (conf):
     if is_linux() and not 'mingw32' in conf.env.CXX[0]:
         conf.define ('LINUX', 1)
     elif is_mac():
+        # AVKit AVFoundation CoreMedia
         conf.env.FRAMEWORK_ACCELERATE     = 'Accelerate'
         conf.env.FRAMEWORK_AUDIO_TOOLBOX  = 'AudioToolbox'
         conf.env.FRAMEWORK_CORE_AUDIO     = 'CoreAudio'
@@ -191,7 +192,10 @@ def configure (conf):
         conf.env.FRAMEWORK_QuickTime      = 'QuickTime'
         conf.env.FRAMEWORK_QUARTZ_CORE    = 'QuartzCore'
         conf.env.FRAMEWORK_WEB_KIT        = 'WebKit'
-        conf.env.ARCH = ['i386']
+        conf.env.FRAMEWORK_AV_KIT         = 'AVKit'
+        conf.env.FRAMEWORK_AV_FOUNDATION  = 'AVFoundation'
+        conf.env.FRAMEWORK_CORE_MEDIA     = 'CoreMedia'
+        conf.env.ARCH = [ 'i386' ]
     elif is_win32(): pass
 
 def extension():
@@ -208,12 +212,12 @@ def find (ctx, pattern):
     pattern = '%s/**/%s' % (ctx.env.JUCE_MODULE_PATH, pattern)
     return ctx.path.ant_glob (pattern)
 
-def build_modular_libs (bld, mods, vnum='4.2.0', postfix=''):
+def build_modular_libs (bld, mods, vnum='5.2.1', postfix=''):
     '''compile the passed modules into individual targets. returns
         a list of waf bld objects in case further setup is required'''
     libs = []
     mext = extension()
-    opengl_wanted = 'juce_opengl' in mods;
+    opengl_wanted = 'juce_opengl' in mods
 
     for mod in mods:
         info = get_module_info (bld, mod)
@@ -254,10 +258,10 @@ def build_unified_library (bld, tgt, mods, features="cxx cxxshlib"):
 
     mext = extension()
 
-    for mod in mods:
-        info = get_module_info(bld, mod)
-        obj.source += find (bld, mod + mext)
-        obj.linkflags += info.mingwLibs()
+    # for mod in mods:
+    #     info = get_module_info (bld, mod)
+    #     obj.source += find (bld, mod + mext)
+        # obj.linkflags += info.mingwLibs()
 
     return obj
 
@@ -267,7 +271,7 @@ def module_path (ctx):
 def available_modules (ctx):
     return os.listdir (module_path (ctx))
 
-def extract_module_atts (module_header):
+def extract_module_atts(module_header):
     try:
         f = open (module_header)
         s = f.read()
@@ -672,6 +676,7 @@ class IntrojucerProject:
 
         return object
 
+from waflib import TaskGen
 @TaskGen.extension ('.mm')
 def juce_mm_hook (self, node):
     return self.create_compiled_task ('cxx', node)

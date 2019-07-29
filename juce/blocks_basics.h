@@ -1,5 +1,5 @@
 /*
-    tracktion_marketplace.h - This file is part of libjuce
+    blocks_basics.h - This file is part of libjuce
     Copyright (C) 2015  Kushview, LLC. All rights reserved.
 
     This program is free software; you can redistribute it and/or modify
@@ -17,11 +17,11 @@
     Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 */
 
-#ifndef LIBJUCE_TRACKTION_MARKETPLACE_H
-#define LIBJUCE_TRACKTION_MARKETPLACE_H
+#ifndef LIBJUCE_AUDIO_UTILS_H
+#define LIBJUCE_AUDIO_UTILS_H
 
 #include "modules/config.h"
 #define JUCE_GLOBAL_MODULE_SETTINGS_INCLUDED 1
-#include "modules/juce_tracktion_marketplace/juce_tracktion_marketplace.h"
+#include "modules/juce_blocks_basics/juce_blocks_basics.h"
 
 #endif

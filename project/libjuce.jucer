@@ -2,7 +2,7 @@
 
 <JUCERPROJECT id="Sy5MuQ" name="libjuce" projectType="dll" version="3.0.0"
               bundleIdentifier="org.mfisher31.libjuce" includeBinaryInAppConfig="1"
-              jucerVersion="4.0.2" userNotes="">
+              jucerVersion="5.4.3" userNotes="">
   <MAINGROUP id="adaLtz" name="libjuce">
     <FILE id="ISlcW4" name="juce.h" compile="0" resource="0" file="../juce/juce.h"/>
   </MAINGROUP>
@@ -30,14 +30,17 @@
         <MODULEPATH id="juce_cryptography" path="../src/modules"/>
         <MODULEPATH id="juce_video" path="../src/modules"/>
         <MODULEPATH id="juce_opengl" path="../src/modules"/>
+        <MODULEPATH id="juce_analytics" path="../src/modules"/>
+        <MODULEPATH id="juce_osc" path="../src/modules"/>
+        <MODULEPATH id="juce_product_unlocking" path="../src/modules"/>
+        <MODULEPATH id="juce_dsp" path="../src/modules"/>
+        <MODULEPATH id="juce_blocks_basics" path="../src/modules"/>
       </MODULEPATHS>
     </LINUX_MAKE>
     <XCODE_MAC targetFolder="Builds/MacOSX">
       <CONFIGURATIONS>
-        <CONFIGURATION name="Debug" osxSDK="default" osxCompatibility="default" osxArchitecture="default"
-                       isDebug="1" optimisation="1" targetName="libjuce"/>
-        <CONFIGURATION name="Release" osxSDK="default" osxCompatibility="default" osxArchitecture="default"
-                       isDebug="0" optimisation="2" targetName="libjuce"/>
+        <CONFIGURATION name="Debug" isDebug="1" optimisation="1" targetName="libjuce"/>
+        <CONFIGURATION name="Release" isDebug="0" optimisation="2" targetName="libjuce"/>
       </CONFIGURATIONS>
       <MODULEPATHS>
         <MODULEPATH id="juce_video" path="../src/modules"/>
@@ -55,25 +58,39 @@
         <MODULEPATH id="juce_audio_devices" path="../src/modules"/>
         <MODULEPATH id="juce_audio_basics" path="../src/modules"/>
         <MODULEPATH id="juce_opengl" path="../src/modules"/>
+        <MODULEPATH id="juce_analytics" path="../src/modules"/>
+        <MODULEPATH id="juce_osc" path="../src/modules"/>
+        <MODULEPATH id="juce_product_unlocking" path="../src/modules"/>
+        <MODULEPATH id="juce_dsp" path="../src/modules"/>
+        <MODULEPATH id="juce_blocks_basics" path="../src/modules"/>
       </MODULEPATHS>
     </XCODE_MAC>
   </EXPORTFORMATS>
   <MODULES>
+    <MODULE id="juce_analytics" showAllCode="1" useLocalCopy="0" useGlobalPath="0"/>
     <MODULES id="juce_audio_basics" showAllCode="1" useLocalCopy="0"/>
     <MODULES id="juce_audio_devices" showAllCode="1" useLocalCopy="0"/>
     <MODULES id="juce_audio_formats" showAllCode="1" useLocalCopy="0"/>
     <MODULES id="juce_audio_processors" showAllCode="1" useLocalCopy="0"/>
     <MODULES id="juce_audio_utils" showAllCode="1" useLocalCopy="0"/>
+    <MODULE id="juce_blocks_basics" showAllCode="1" useLocalCopy="0" useGlobalPath="0"/>
     <MODULES id="juce_box2d" showAllCode="1" useLocalCopy="0"/>
     <MODULES id="juce_core" showAllCode="1" useLocalCopy="0"/>
     <MODULES id="juce_cryptography" showAllCode="1" useLocalCopy="0"/>
     <MODULES id="juce_data_structures" showAllCode="1" useLocalCopy="0"/>
+    <MODULE id="juce_dsp" showAllCode="1" useLocalCopy="0" useGlobalPath="0"/>
     <MODULES id="juce_events" showAllCode="1" useLocalCopy="0"/>
     <MODULES id="juce_graphics" showAllCode="1" useLocalCopy="0"/>
     <MODULES id="juce_gui_basics" showAllCode="1" useLocalCopy="0"/>
     <MODULES id="juce_gui_extra" showAllCode="1" useLocalCopy="0"/>
     <MODULES id="juce_opengl" showAllCode="1" useLocalCopy="0"/>
+    <MODULE id="juce_osc" showAllCode="1" useLocalCopy="0" useGlobalPath="0"/>
+    <MODULE id="juce_product_unlocking" showAllCode="1" useLocalCopy="0"
+            useGlobalPath="0"/>
     <MODULES id="juce_video" showAllCode="1" useLocalCopy="0"/>
   </MODULES>
   <JUCEOPTIONS/>
+  <LIVE_SETTINGS>
+    <OSX/>
+  </LIVE_SETTINGS>
 </JUCERPROJECT>

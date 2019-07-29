@@ -1,6 +1,6 @@
 #!/usr/bin/evn python
 # encoding: utf-8
-# Copyright (C) 2012-2016 Michael Fisher <mfisher31@gmail.com>
+# Copyright (C) 2012-2016 Michael Fisher <mfisher@kushview.net>
 
 ''' This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public Licence as published by
@@ -15,12 +15,10 @@ file COPYING for more details. '''
 import sys, os, platform
 from subprocess import call
 
-sys.path.insert(0, "tools/waf")
+sys.path.insert (0, "tools/waf")
 import juce
-from juce import IntrojucerProject as Project
-from juce import ModuleInfo as ModuleInfo
 
-JUCE_VERSION = '4.2.0'
+JUCE_VERSION = '5.2.1'
 JUCE_MAJOR_VERSION = JUCE_VERSION[0]
 JUCE_MINOR_VERSION = JUCE_VERSION[2]
 JUCE_MICRO_VERSION = JUCE_VERSION[4]
@@ -30,37 +28,40 @@ JUCE_EXTRA_VERSION = ''
 APPNAME = 'libjuce'
 VERSION = JUCE_VERSION
 
-# Waf wants these as well
 top = '.'
 out = 'build'
 
 library_modules = '''
+    juce_analytics
     juce_audio_basics
     juce_audio_devices
     juce_audio_formats
     juce_audio_processors
     juce_audio_utils
+    juce_blocks_basics
     juce_box2d
     juce_core
     juce_cryptography
     juce_data_structures
     juce_events
     juce_opengl
+    juce_osc
     juce_graphics
     juce_gui_basics
     juce_gui_extra
-    juce_osc
-    juce_tracktion_marketplace
+    juce_product_unlocking
     juce_video
 '''.split()
 
-mingw32_libs = 'gdi32 uuid wsock32 wininet version ole32 ws2_32 oleaut32 imm32 comdlg32 shlwapi rpcrt4 winmm opengl32'
+mingw32_libs = '''
+    gdi32 uuid wsock32 wininet version ole32 ws2_32 oleaut32 imm32 \
+    comdlg32 shlwapi rpcrt4 winmm opengl32
+'''
 
-def options(opts):
+def options (opts):
     opts.load ('compiler_c compiler_cxx juce')
-
-    opts.add_option('--introjucer', default=False, action="store_true", \
-        dest="introjucer", help="Build the Introjucer [ Default: False ]")
+    opts.add_option('--projucer', default=False, action="store_true", \
+        dest="projucer", help="Build the Projucer [ Default: False ]")
     opts.add_option('--juce-demo', default=False, action="store_true", \
         dest="juce_demo", help="Build the JUCE Demo [ Default: False ]")
     opts.add_option('--no-headers', default=True, action="store_false", \
@@ -82,7 +83,7 @@ def configure (conf):
 
     # Store options in environment
     conf.env.BUILD_DEBUGGABLE   = conf.options.debug
-    conf.env.BUILD_INTROJUCER   = conf.options.introjucer
+    conf.env.BUILD_INTROJUCER   = conf.options.projucer
     conf.env.BUILD_JUCE_DEMO    = conf.options.juce_demo
     conf.env.BUILD_JUCE_MODULES = conf.options.no_juce_libs
     conf.env.BUILD_STATIC       = conf.options.static
@@ -101,7 +102,7 @@ def configure (conf):
     conf.define ("JUCE_EXTRA_VERSION", JUCE_EXTRA_VERSION)
     conf.write_config_header ('modules/version.h', 'LIBJUCE_VERSION_H')
 
-    conf.check_cxx11()
+    conf.check_cxx_version()
     conf.check_inline()
 
     cross_mingw = 'mingw32' in conf.env.CXX[0]
@@ -148,9 +149,10 @@ def configure (conf):
         conf.define('JUCE_MODULE_AVAILABLE_%s' % mod, True)
     conf.write_config_header ('modules/config.h', 'LIBJUCE_MODULES_CONFIG_H')
 
-    # conf.define('JUCE_APP_CONFIG_HEADER', 'modules/config.h')
+    conf.load ('juce')
+    conf.define ('JUCE_APP_CONFIG_HEADER', "modules/config.h")
+
     conf.env.JUCE_MODULE_PATH = 'src/modules'
-    conf.load('juce')
     conf.env.append_unique ('CXXFLAGS', '-I' + os.getcwd() + '/build')
     conf.env.append_unique ('CFLAGS', '-I' + os.getcwd() + '/build')
 
@@ -160,10 +162,11 @@ def configure (conf):
     juce.display_msg (conf, 'Prefix', conf.env.PREFIX)
     juce.display_msg (conf, 'Install Headers', conf.env.INSTALL_HEADERS)
     juce.display_msg (conf, 'Build Debuggable Libraries', conf.env.BUILD_DEBUGGABLE)
-    juce.display_msg (conf, 'Build Introjucer', conf.env.BUILD_INTROJUCER)
+    juce.display_msg (conf, 'Build Projucer', conf.env.BUILD_INTROJUCER)
     juce.display_msg (conf, 'Build Juce Demo', conf.env.BUILD_JUCE_DEMO)
     juce.display_msg (conf, 'Build Modules', conf.env.BUILD_JUCE_MODULES)
     juce.display_msg (conf, 'Build Static Libraries', conf.env.BUILD_STATIC)
+    juce.display_msg (conf, 'Module Path', conf.env.JUCE_MODULE_PATH)
     print
     juce.display_header ('Global Compiler Flags')
     juce.display_msg (conf, 'CFLAGS', conf.env.CFLAGS)
@@ -212,24 +215,46 @@ def maybe_install_headers(bld):
         install_misc_header (bld, 'build/modules/version.h', '/modules')
 
 def module_slug (mod, debug=False):
-    slug = mod.replace('_', '-')
+    slug = mod.replace ('_', '-')
     if debug: slug += '-debug'
     slug += '-%s' % JUCE_MAJOR_VERSION
     return slug
 
-def library_slug(mod, debug=False):
+def library_slug (mod, debug=False):
     mv = JUCE_MAJOR_VERSION
     slug = mod + '_debug-%s' % mv if debug else mod + '-%s' % mv
     return slug
 
 def build_osx (bld):
-    obj = juce.build_unified_library(bld, 'juce', library_modules)
-    obj.name = "libjuce"
-    obj.vnum = JUCE_VERSION
-    obj.includes += ['juce', 'src/modules']
-    obj.cxxflags = ['-DJUCE_APP_CONFIG_HEADER="modules/config.h"']
-    obj.use = ['AUDIO_TOOLBOX', 'COCOA', 'CORE_AUDIO', 'CORE_MIDI', 'OPEN_GL', \
-               'ACCELERATE', 'IO_KIT', 'QUARTZ_CORE', 'WEB_KIT']
+    source = []
+    for mod in library_modules:
+        slug = mod.replace ('juce_', '')
+        extension = 'mm'
+        if mod in 'juce_analytics juce_osc juce_box2d juce_blocks_basics'.split():
+            extension = 'cpp'
+        file = 'juce/%s.%s' % (slug, extension)
+        source.append (file)
+    source.append ('project/dummy.cpp')
+    bld.shlib (
+        source = source,
+        includes = [ 'juce', 'src/modules' ],
+        name = 'JUCE',
+        target = 'lib/juce',
+        use = ['AUDIO_TOOLBOX', 'COCOA', 'CORE_AUDIO', 'CORE_MIDI', 'OPEN_GL', \
+               'ACCELERATE', 'IO_KIT', 'QUARTZ_CORE', 'WEB_KIT', 'CORE_MEDIA',
+               'AV_FOUNDATION', 'AV_KIT' ],
+        env = bld.env.derive(),
+        vnum = JUCE_VERSION
+    )
+
+    bld.program (
+        source = [ 'project/testlib.cpp' ],
+        includes = [ './', 'src', 'src/modules' ],
+        use = [ 'JUCE' ],
+        name = 'testlib',
+        target = 'bin/testlib',
+        install_path = None
+    )
 
 def build_cross_mingw (bld):
     obj = juce.build_unified_library(bld, 'juce', library_modules)
@@ -301,76 +326,24 @@ def build_modules (bld):
 
     maybe_install_headers (bld)
 
-def build_project (bld, project, name):
-    is_mingw32 = juce.is_windows() or 'mingw' in bld.env.CXX[0]
-    node = bld.path.find_resource (project)
-    introjucer = juce.IntrojucerProject (bld, node.relpath())
-    obj = introjucer.compile (bld)
-    obj.cxxflags += ['-DJUCE_APP_CONFIG_HEADER="AppConfig.h"']
-    obj.includes.append ('src/modules')
-    obj.env = bld.env.derive()
-
-    if juce.is_linux() and not is_mingw32:
-        obj.use += ['GL', 'ALSA', 'FREETYPE', 'CURL', 'X11', 'XEXT']
-        obj.linkflags = ['-lpthread', '-ldl']
-        make_desktop (bld, name)
-    elif is_mingw32:
-        obj.use = mingw32_libs.upper().split()
-        obj.linkflags = ''
-    return obj
-
 def build (bld):
     bld.env.INSTALL_HEADERS = bld.options.install_headers
 
-    if bld.env.BUILD_JUCE_MODULES:
-        build_modules(bld)
+    if juce.is_mac():
+        build_osx (bld)
 
     # testing linkage against module libs
-    is_mingw32 = juce.is_windows() or 'w64-mingw' in bld.env.CXX[0]
-    disable_test_app = False
-    if not disable_test_app:
-        testapp = Project (bld, 'extras/TestApp/TestApp.jucer')
-        if juce.is_linux() and not is_mingw32:
-            juce_useflags = ['X11', 'XEXT', 'ALSA', 'GL', 'FREETYPE', 'CURL']
-        elif juce.is_mac():
-            juce_useflags = ['libjuce']
-        elif is_mingw32:
-            juce_useflags = ['libjuce']
-
-        obj = bld.program (
-            source    = testapp.getProjectCode(),
-            includes  = ['.', 'juce', 'src', 'src/modules'],
-            name      = 'TestApp',
-            target    = 'testapp',
-            use       = juce_useflags,
-            linkflags = '',
-            install_path = None,
-            cxxflags  = ['-DJUCE_GLOBAL_MODULE_SETTINGS_INCLUDED=1']
-        )
-
-        if juce.is_linux() and not is_mingw32:
-            for mod in library_modules:
-                pkgslug = module_slug(mod, bld.env.BUILD_DEBUGGABLE)
-                juce_useflags.append (pkgslug)
-            obj.linkflags = '-Wl,-rpath,$ORIGIN'
-        elif juce.is_mac():
-            obj.target  = 'Applications/TestApp'
-            obj.mac_app = True
-            obj.install_path = os.getcwd() + '/build/Applications' # workaround
-        elif is_mingw32:
-            pass
-
-        bld.add_group()
-
-    if bld.env.BUILD_INTROJUCER:
-        build_project (bld, 'src/extras/Projucer/Projucer.jucer', 'Projucer')
+    enable_test_app = True
+    if enable_test_app:
+        print "Build Test App"
+    if bld.env.BUILD_PROJUCER:
+        print "Build Projucer"
     if bld.env.BUILD_JUCE_DEMO:
-        build_project (bld, 'src/examples/Demo/JuceDemo.jucer', 'JuceDemo')
+        print "Build Demo"
+    
+    maybe_install_headers (bld)
 
-    if juce.is_linux() and (bld.env.BUILD_INTROJUCER or bld.env.BUILD_JUCE_DEMO):
-        bld.install_files (bld.env.DATADIR + '/juce/icons', 'data/juce_icon.xpm')
-
-def dist(ctx):
+def dist (ctx):
     z = ctx.options.ziptype
     if 'zip' in z:
         ziptype = z
