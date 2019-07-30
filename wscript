@@ -314,7 +314,7 @@ def build_modules (bld):
         library = bld(
             features    = 'cxxshlib cxx',
             includes    = [ 'juce', 'src/modules' ],
-            source      = [ 'juce/%s.%s' % (m.replace ('juce_', ''), ext) ],
+            source      = [ 'build/code/include_%s.%s' % (m, ext) ],
             target      = 'lib/%s' % module_libname,
             name        = m,
             use         = module.dependencies()
@@ -337,12 +337,18 @@ def build_modules (bld):
             PREFIX       = bld.env.PREFIX,
             INCLUDEDIR   = bld.env.INCLUDEDIR,
             LIBDIR       = bld.env.LIBDIR,
+            CFLAGS       = '',
             DEPLIBS      = '-l%s' % module_libname,
             REQUIRED     = module.requiredPackages(),
             NAME         = module.name(),
             DESCRIPTION  = module.description(),
             VERSION      = module.version(),
         )
+
+        if not bld.env.BUILD_DEBUGGABLE:
+            pcobj.CFLAGS += ' -DNDEBUG=1'
+        else:
+            pcobj.CFLAGS += ' -DDEBUG=1'
 
         if juce.is_mac():
             for framework in module.osxFrameworks (False):
