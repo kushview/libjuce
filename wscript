@@ -265,15 +265,6 @@ def build_osx (bld):
         vnum = JUCE_VERSION
     )
 
-    # bld.program (
-    #     source = [ 'project/testlib.cpp' ],
-    #     includes = [ './', 'src', 'src/modules' ],
-    #     use = [ 'JUCE' ],
-    #     name = 'testlib',
-    #     target = 'bin/testlib',
-    #     install_path = None
-    # )
-
     pcobj = bld (
         features     = 'subst',
         source       = 'juce.pc.in',
@@ -284,7 +275,7 @@ def build_osx (bld):
         INCLUDEDIR   = bld.env.INCLUDEDIR,
         LIBDIR       = bld.env.LIBDIR,
         CFLAGS       = '',
-        DEPLIBS      = '-ljuce-%s' % JUCE_MAJOR_VERSION,
+        DEPLIBS      = '-l%s' % library_slug (bld, 'juce'),
         REQUIRED     = '',
         NAME         = 'JUCE',
         DESCRIPTION  = 'JUCE library modules',
