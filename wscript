@@ -24,7 +24,6 @@ JUCE_MINOR_VERSION = JUCE_VERSION[2]
 JUCE_MICRO_VERSION = JUCE_VERSION[4]
 JUCE_EXTRA_VERSION = ''
 
-# For waf dist
 APPNAME = 'libjuce'
 VERSION = JUCE_VERSION
 
@@ -285,7 +284,7 @@ def build_cross_mingw (bld):
     obj.cxxflags = ['-DJUCE_APP_CONFIG_HEADER="juce/config.h"']
     bld (
         features     = 'subst',
-        source       = 'juce-module.pc.in',
+        source       = 'juce_module.pc.in',
         target       = 'juce.pc',
         install_path = bld.env.LIBDIR + '/pkgconfig',
         MAJOR_VERSION= JUCE_MAJOR_VERSION,
@@ -331,7 +330,7 @@ def build_modules (bld):
         # Pkg Config Files
         pcobj = bld (
             features     = 'subst',
-            source       = 'juce-module.pc.in',
+            source       = 'juce_module.pc.in',
             target       = slug + '.pc',
             install_path = bld.env.LIBDIR + '/pkgconfig',
             MAJOR_VERSION= JUCE_MAJOR_VERSION,
