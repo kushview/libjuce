@@ -53,6 +53,13 @@ library_modules = '''
     juce_video
 '''.split()
 
+cpponly_modules = '''
+    juce_analytics
+    juce_osc 
+    juce_box2d
+    juce_blocks_basics
+'''.split()
+
 mingw32_libs = '''
     gdi32 uuid wsock32 wininet version ole32 ws2_32 oleaut32 imm32 \
     comdlg32 shlwapi rpcrt4 winmm opengl32
@@ -134,6 +141,10 @@ def configure (conf):
     conf.write_config_header ("libjuce_config.h")
 
     # Write juce/config.h
+    conf.define ('JUCE_REPORT_APP_USAGE', 0)
+    conf.define ('JUCE_DISPLAY_SPLASH_SCREEN', 0)
+    conf.define ('JUCE_USE_DARK_SPLASH_SCREEN', 0)
+
     conf.define ('JUCE_USE_CURL', len(conf.env.LIB_CURL) > 0)
     conf.define ('JUCE_USE_ALSA', len(conf.env.LIB_ALSA) > 0)
     conf.define ('JUCE_USE_JACK', len(conf.env.LIB_JACK) > 0)
@@ -202,11 +213,8 @@ def maybe_install_headers (bld):
     for header in ['juce/juce.h' ]:
         install_misc_header (bld, header, 'juce')
 
-    for header in [ 'juce/AppConfig.h', 'juce/JuceHeader.h' ]:
-        install_misc_header (bld, header)
-
-    for mod in library_modules:
-        install_misc_header (bld, "juce/%s.h" % mod.replace ('juce_', ''), 'juce')
+    # for mod in library_modules:
+    #     install_misc_header (bld, "build/juce/%s.h" % mod.replace ('juce_', ''), 'juce')
 
     install_misc_header (bld, 'build/juce/config.h', 'juce')
     install_misc_header (bld, 'build/juce/version.h', 'juce')
@@ -225,13 +233,12 @@ def library_slug (ctx, name):
     return slug
 
 def build_osx (bld):
-    source = []
+    source = [ ]
     for mod in library_modules:
-        slug = mod.replace ('juce_', '')
         extension = 'mm'
-        if mod in 'juce_analytics juce_osc juce_box2d juce_blocks_basics'.split():
+        if mod in cpponly_modules:
             extension = 'cpp'
-        file = 'juce/%s.%s' % (slug, extension)
+        file = 'build/code/include_%s.%s' % (mod, extension)
         source.append (file)
     source.append ('project/dummy.cpp')
 
@@ -348,9 +355,42 @@ def build_single (bld):
     if juce.is_mac():
         build_osx (bld)
 
+def generate_code(bld):
+    for mod in library_modules:
+        bld (
+            features     = 'subst',
+            source       = 'module_header.h.in',
+            target       = 'juce/%s.h' % mod.replace ('juce_', ''),
+            name         = mod + "_h",
+            install_path = get_include_path (bld, 'juce'),
+            MODULE       = mod
+        )
+
+        bld (
+            features     = 'subst',
+            source       = 'module_code.cpp.in',
+            target       = 'code/include_%s.cpp' % mod,
+            name         = mod + "_cpp",
+            install_path = None,
+            MODULE       = mod
+        )
+
+        if not mod in cpponly_modules:
+            bld (
+                features     = 'subst',
+                source       = 'module_code.mm.in',
+                target       = 'code/include_%s.mm' % mod,
+                name         = mod + "_mm",
+                install_path = None,
+                MODULE       = mod
+            )
+    bld.add_group()
+
 def build (bld):
     bld.env.INSTALL_HEADERS = bld.options.install_headers
     
+    generate_code (bld)
+
     if bld.env.BUILD_JUCE_MODULES:
         build_modules (bld)
     else:

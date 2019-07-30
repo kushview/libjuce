@@ -1,3 +1,4 @@
+
 /*
     This file is part of libjuce
     Copyright (C) 2015-2019  Kushview, LLC. All rights reserved.
@@ -17,8 +18,5 @@
     Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 */
 
-#pragma once
-
 #include <juce/config.h>
-#define JUCE_GLOBAL_MODULE_SETTINGS_INCLUDED 1
-#include <juce_blocks_basics/juce_blocks_basics.h>
+#include <@MODULE@/@MODULE@.cpp>

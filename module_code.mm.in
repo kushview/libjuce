@@ -17,8 +17,5 @@
     Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 */
 
-#pragma once
-
 #include <juce/config.h>
-#define JUCE_GLOBAL_MODULE_SETTINGS_INCLUDED 1
-#include <juce_audio_processors/juce_audio_processors.h>
+#include <@MODULE@/@MODULE@.mm>
