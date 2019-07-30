@@ -5,5 +5,5 @@
 
 */
 
-#include "AppConfig.h"
+#include <juce/config.h>
 #include <juce_data_structures/juce_data_structures.cpp>

@@ -5,5 +5,5 @@
 
 */
 
-#include "AppConfig.h"
+#include <juce/config.h>
 #include <juce_events/juce_events.mm>

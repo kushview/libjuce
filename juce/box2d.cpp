@@ -5,5 +5,5 @@
 
 */
 
-#include "AppConfig.h"
+#include <juce/config.h>
 #include <juce_box2d/juce_box2d.cpp>

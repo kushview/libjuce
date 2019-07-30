@@ -17,11 +17,8 @@
     Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 */
 
-#ifndef LIBJUCE_GRAPHICS_H
-#define LIBJUCE_GRAPHICS_H
+#pragma once
 
-#include "modules/config.h"
+#include <juce/config.h>
 #define JUCE_GLOBAL_MODULE_SETTINGS_INCLUDED 1
-#include "modules/juce_graphics/juce_graphics.h"
-
-#endif
+#include <juce_graphics/juce_graphics.h>

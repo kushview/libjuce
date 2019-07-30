@@ -5,5 +5,5 @@
 
 */
 
-#include "AppConfig.h"
+#include <juce/config.h>
 #include <juce_osc/juce_osc.cpp>

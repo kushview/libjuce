@@ -1,6 +1,8 @@
 #include <juce/juce.h>
-int main() {
+
+int main()
+{
     juce::String hello ("hello world");
-    std::cout << hello.toStdString();
+    juce::Logger::writeToLog (hello);
     return 0;
 }

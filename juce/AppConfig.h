@@ -1,6 +1,6 @@
 /*
     AppConfig.h - This file is part of libjuce
-    Copyright (C) 2015  Kushview, LLC. All rights reserved.
+    Copyright (C) 2015-2019  Kushview, LLC. All rights reserved.
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -24,8 +24,8 @@
     compile with or without libjuce and not worry about handling the logic
     of including libjuce or the regular AppConfig.h
 
-    This header simply includes <juce/modules/config.h>
+    This header simply includes <juce/config.h>
 */
 
 #pragma once
-#include "./modules/config.h"
+#include <juce/config.h>

@@ -7,6 +7,6 @@ major_version=@MAJOR_VERSION@
 Name: @NAME@
 Version: @VERSION@
 Description: @DESCRIPTION@
-Cflags: @CFLAGS@ -I${includedir}/juce-${major_version} -I${includedir}/juce-${major_version}/juce/modules
+Cflags: @CFLAGS@ -I${includedir}/juce-${major_version}
 Libs: -L${libdir} @DEPLIBS@
 Requires: @REQUIRED@

@@ -1,6 +1,6 @@
 /*
     JuceHeader.h - This file is part of libjuce
-    Copyright (C) 2015  Kushview, LLC. All rights reserved.
+    Copyright (C) 2015-2019  Kushview, LLC. All rights reserved.
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -27,9 +27,5 @@
     This header simply includes <juce/juce.h>
 */
 
-#ifndef LIBJUCE_JUCE_HEADER_H
-#define LIBJUCE_JUCE_HEADER_H
-
-#include "./juce.h"
-
-#endif
+#pragma once
+#include <juce/juce.h>

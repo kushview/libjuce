@@ -1,6 +1,6 @@
 /*
-    data_structures.h - This file is part of libjuce
-    Copyright (C) 2015  Kushview, LLC. All rights reserved.
+    This file is part of libjuce
+    Copyright (C) 2015-2019  Kushview, LLC. All rights reserved.
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -17,11 +17,8 @@
     Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 */
 
-#ifndef LIBJUCE_DATA_STRUCTURES_H
-#define LIBJUCE_DATA_STRUCTURES_H
+#pragma once
 
-#include "modules/config.h"
+#include <juce/config.h>
 #define JUCE_GLOBAL_MODULE_SETTINGS_INCLUDED 1
-#include "modules/juce_data_structures/juce_data_structures.h"
-
-#endif
+#include <juce_data_structures/juce_data_structures.h>

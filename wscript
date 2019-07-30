@@ -100,7 +100,7 @@ def configure (conf):
     conf.define ("JUCE_MINOR_VERSION", JUCE_MINOR_VERSION)
     conf.define ("JUCE_MICRO_VERSION", JUCE_MICRO_VERSION)
     conf.define ("JUCE_EXTRA_VERSION", JUCE_EXTRA_VERSION)
-    conf.write_config_header ('modules/version.h', 'LIBJUCE_VERSION_H')
+    conf.write_config_header ('juce/version.h', 'LIBJUCE_VERSION_H')
 
     conf.check_cxx_version()
     conf.check_inline()
@@ -133,7 +133,7 @@ def configure (conf):
 
     conf.write_config_header ("libjuce_config.h")
 
-    # Write modules/config.h "
+    # Write juce/config.h
     conf.define ('JUCE_USE_CURL', len(conf.env.LIB_CURL) > 0)
     conf.define ('JUCE_USE_ALSA', len(conf.env.LIB_ALSA) > 0)
     conf.define ('JUCE_USE_JACK', len(conf.env.LIB_JACK) > 0)
@@ -147,10 +147,10 @@ def configure (conf):
     conf.define ('JUCE_STANDALONE_APPLICATION', 0)
     for mod in library_modules:
         conf.define('JUCE_MODULE_AVAILABLE_%s' % mod, True)
-    conf.write_config_header ('modules/config.h', 'LIBJUCE_MODULES_CONFIG_H')
+    conf.write_config_header ('juce/config.h', 'LIBJUCE_MODULES_CONFIG_H')
 
     conf.load ('juce')
-    conf.define ('JUCE_APP_CONFIG_HEADER', "modules/config.h")
+    conf.define ('JUCE_APP_CONFIG_HEADER', "juce/config.h")
 
     conf.env.JUCE_MODULE_PATH = 'src/modules'
     conf.env.append_unique ('CXXFLAGS', '-I' + os.getcwd() + '/build')
@@ -196,28 +196,38 @@ def make_desktop (bld, slug):
              install_path = bld.env.DATADIR + "/applications"
         )
 
-def get_include_path (bld):
-    return bld.env.INCLUDEDIR + '/juce-%s/juce' % JUCE_MAJOR_VERSION
+def get_include_path (bld, subpath=''):
+    ip = '%s/juce-%s' % (bld.env.INCLUDEDIR, JUCE_MAJOR_VERSION)
+    ip = os.path.join (ip, subpath) if len(subpath) > 0 else ip
+    return ip
 
 def install_module_headers (bld, modules):
     for mod in modules:
         bld.install_files (get_include_path (bld), \
                            bld.path.ant_glob ("src/modules/" + mod + "/**/*.h"), \
-                           relative_trick=True, cwd=bld.path.find_dir ('src'))
+                           relative_trick=True, cwd=bld.path.find_dir ('src/modules'))
 
-def install_misc_header (bld, h, subpath=''):
-    p = get_include_path(bld) + subpath
-    bld.install_files (p, h)
+def install_misc_header (bld, header, subpath=''):
+    destination = get_include_path (bld, subpath)
+    bld.install_files (destination, header)
 
-def maybe_install_headers(bld):
-    if bld.env.INSTALL_HEADERS:
-        install_module_headers (bld, library_modules)
-        for header in ['juce/juce.h', 'juce/AppConfig.h', 'juce/JuceHeader.h']:
-            install_misc_header (bld, header)
-        for mod in library_modules:
-            install_misc_header (bld, "juce/%s.h" % mod.replace ('juce_', ''))
-        install_misc_header (bld, 'build/modules/config.h', '/modules')
-        install_misc_header (bld, 'build/modules/version.h', '/modules')
+def maybe_install_headers (bld):
+    if not bld.env.INSTALL_HEADERS:
+        return
+    
+    install_module_headers (bld, library_modules)
+
+    for header in ['juce/juce.h' ]:
+        install_misc_header (bld, header, 'juce')
+
+    for header in [ 'juce/AppConfig.h', 'juce/JuceHeader.h' ]:
+        install_misc_header (bld, header)
+
+    for mod in library_modules:
+        install_misc_header (bld, "juce/%s.h" % mod.replace ('juce_', ''), 'juce')
+
+    install_misc_header (bld, 'build/juce/config.h', 'juce')
+    install_misc_header (bld, 'build/juce/version.h', 'juce')
 
 def module_slug (ctx, mod):
     debug = ctx.env.BUILD_DEBUGGABLE
@@ -255,14 +265,14 @@ def build_osx (bld):
         vnum = JUCE_VERSION
     )
 
-    bld.program (
-        source = [ 'project/testlib.cpp' ],
-        includes = [ './', 'src', 'src/modules' ],
-        use = [ 'JUCE' ],
-        name = 'testlib',
-        target = 'bin/testlib',
-        install_path = None
-    )
+    # bld.program (
+    #     source = [ 'project/testlib.cpp' ],
+    #     includes = [ './', 'src', 'src/modules' ],
+    #     use = [ 'JUCE' ],
+    #     name = 'testlib',
+    #     target = 'bin/testlib',
+    #     install_path = None
+    # )
 
     pcobj = bld (
         features     = 'subst',
@@ -292,7 +302,7 @@ def build_cross_mingw (bld):
     obj.vnum = JUCE_VERSION
     obj.includes += ['juce', 'src/modules']
     obj.use += mingw32_libs.upper().split()
-    obj.cxxflags = ['-DJUCE_APP_CONFIG_HEADER="modules/config.h"']
+    obj.cxxflags = ['-DJUCE_APP_CONFIG_HEADER="juce/config.h"']
     bld (
         features     = 'subst',
         source       = 'juce-module.pc.in',
