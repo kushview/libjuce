@@ -142,6 +142,13 @@ def plugin_extension (bld):
 def options (opt):
     opt.add_option ('--debug', default=False, action="store_true", dest="debug",
                     help="Compile debuggable binaries [ Default: False ]")
+    if is_mac():
+        opt.add_option('--mac-arch', default='x86_64', type='string', \
+            dest='mac_arch', help="Comma separated ARCH to use on OSX [ Default: x86_64 ]")
+        opt.add_option('--mac-version-min', default='', type='string', \
+            dest='mac_version_min', help="Minimum OSX version [ Default: compiler default ]")
+        opt.add_option('--mac-sdk', default='', type='string', \
+            dest='mac_sdk', help="OSX SDK to use [ Default: compiler default ]")
 
 def configure (conf):
     # debugging option
@@ -174,14 +181,15 @@ def configure (conf):
     conf.env.plugin_PATTERN = pat
     conf.env.plugin_EXT = pat[pat.rfind('.'):]
 
-    # do platform stuff
+    # Platform
     if is_linux() and not 'mingw32' in conf.env.CXX[0]:
         conf.define ('LINUX', 1)
+    
     elif is_mac():
-        # AVKit AVFoundation CoreMedia
         conf.env.FRAMEWORK_ACCELERATE     = 'Accelerate'
         conf.env.FRAMEWORK_AUDIO_TOOLBOX  = 'AudioToolbox'
         conf.env.FRAMEWORK_CORE_AUDIO     = 'CoreAudio'
+        conf.env.FRAMEWORK_CORE_MEDIA     = 'CoreMedia'
         conf.env.FRAMEWORK_CORE_MIDI      = 'CoreMIDI'
         conf.env.FRAMEWORK_COCOA          = 'Cocoa'
         conf.env.FRAMEWORK_CARBON         = 'Carbon'
@@ -194,84 +202,27 @@ def configure (conf):
         conf.env.FRAMEWORK_WEB_KIT        = 'WebKit'
         conf.env.FRAMEWORK_AV_KIT         = 'AVKit'
         conf.env.FRAMEWORK_AV_FOUNDATION  = 'AVFoundation'
-        conf.env.FRAMEWORK_CORE_MEDIA     = 'CoreMedia'
-        conf.env.ARCH = [ 'i386', 'x86_64' ]
-    elif is_win32(): pass
+        
+        # ARCH
+        if len(conf.options.mac_arch) > 0:
+            conf.env.ARCH = conf.options.mac_arch.split (',')
+        
+        # Min OSX Version
+        if (len (conf.options.mac_version_min) > 0):
+            conf.env.append_unique('CXXFLAGS', ['-mmacosx-version-min=%s' % conf.options.mac_version_min])
 
-def extension():
-    if platform.system() != "Darwin":
-        return ".cpp"
-    else:
-        return ".mm"
+    elif is_win32():
+        pass
 
 def find (ctx, pattern):
     '''find resources in the juce module path'''
     if len(pattern) <= 0:
         return None
-
+    
     pattern = '%s/**/%s' % (ctx.env.JUCE_MODULE_PATH, pattern)
     return ctx.path.ant_glob (pattern)
 
-def build_modular_libs (bld, mods, vnum='5.2.1', postfix=''):
-    '''compile the passed modules into individual targets. returns
-        a list of waf bld objects in case further setup is required'''
-    libs = []
-    mext = extension()
-    opengl_wanted = 'juce_opengl' in mods
-
-    for mod in mods:
-        info = get_module_info (bld, mod)
-        src  = find (bld, mod + mext)
-        slug = mod.replace('_', '-')
-        use  = info.requiredPackages()
-        major_version = vnum[:1]
-        if is_linux() and mod == 'juce_graphics':
-            use += ['FREETYPE']
-
-        obj = bld (
-            features  = "cxx cxxshlib",
-            source    = list (set (src)),
-            name      = '%s-%s' % (slug + postfix.replace('_', '-'), major_version),
-            target    = '%s-%s' % (mod + postfix, major_version),
-            use       = list (set (use)),
-            includes  = [],
-            linkflags = info.linkFlags()
-        )
-
-        if len(vnum) > 0:
-            obj.vnum = vnum
-
-        libs += [obj]
-
-    return libs
-
-def build_unified_library (bld, tgt, mods, features="cxx cxxshlib"):
-    obj = bld (
-        features    = features,
-        name        = tgt,
-        target      = tgt,
-        source      = [],
-        includes    = [],
-        linkflags   = [],
-        use         = []
-    )
-
-    mext = extension()
-
-    # for mod in mods:
-    #     info = get_module_info (bld, mod)
-    #     obj.source += find (bld, mod + mext)
-        # obj.linkflags += info.mingwLibs()
-
-    return obj
-
-def module_path (ctx):
-    return ctx.env.JUCE_MODULE_PATH
-
-def available_modules (ctx):
-    return os.listdir (module_path (ctx))
-
-def extract_module_atts(module_header):
+def extract_module_atts (module_header):
     try:
         f = open (module_header)
         s = f.read()
@@ -298,7 +249,7 @@ class ModuleInfo:
     def __init__ (self, juce_info_file):
         if os.path.exists (juce_info_file):
             self.infofile = juce_info_file
-            self.data = extract_module_atts(juce_info_file)
+            self.data = extract_module_atts (juce_info_file)
 
     def isValid (self):
         return self.data != None and self.data != { } and self.infofile != None
@@ -322,26 +273,16 @@ class ModuleInfo:
         if not len(self.data ['dependencies']) > 0:
             return []
 
-        # TODO: make work with module header source and old JSON source
-        # deps = []
-        # for dep in self.data ['dependencies']:
-        #     if None != dep ['id']:
-        #         deps.append (dep ['id'])
-        # return deps
-
         return self.data['dependencies'].replace(',',' ').split()
 
     def requiredPackages (self, debug=False):
         pkgs = []
 
         for dep in self.dependencies():
-            pkg = dep.replace ('_', '-')
+            pkg = dep #.replace ('_', '-')
             mv = self.version()[:1]
             pkg += '-debug-%s' % (mv) if debug else '-%s' % (mv)
             pkgs.append (pkg)
-
-        if is_mac():
-            pkgs += self.osxFrameworks()
 
         return list (set (pkgs))
 
@@ -380,7 +321,7 @@ class ModuleInfo:
             return self.linuxLibs()
         return []
 
-    def osxFrameworks (self):
+    def osxFrameworks (self, upper=True):
         ''' Returns an array of frameworks (as useflags) this module
             requires'''
         fwks = []
@@ -390,7 +331,7 @@ class ModuleInfo:
 
         for fw in self.data['OSXFrameworks'].split():
             if not fw in fwks:
-                fwks.append (convert_camel (fw, True))
+                fwks.append (convert_camel (fw, True) if upper else fw)
 
         return fwks
 

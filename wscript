@@ -66,8 +66,8 @@ def options (opts):
         dest="juce_demo", help="Build the JUCE Demo [ Default: False ]")
     opts.add_option('--no-headers', default=True, action="store_false", \
         dest="install_headers", help="Don't install headers")
-    opts.add_option('--no-juce-libs', default=True, action="store_false", \
-        dest="no_juce_libs", help="Don't compile modules as shared libraries")
+    opts.add_option('--enable-multi', default=False, action="store_true", \
+        dest="enable_multi", help="Don't compile modules as shared libraries")
     opts.add_option('--static', default=False, action="store_true", \
         dest="static", help="Build Static Libraries [ Default: False ]")
     opts.add_option('--ziptype', default='gz', type='string', \
@@ -80,12 +80,12 @@ def options (opts):
 def configure (conf):
     conf.prefer_clang()
     conf.load ('compiler_c compiler_cxx')
-
+    
     # Store options in environment
     conf.env.BUILD_DEBUGGABLE   = conf.options.debug
     conf.env.BUILD_INTROJUCER   = conf.options.projucer
     conf.env.BUILD_JUCE_DEMO    = conf.options.juce_demo
-    conf.env.BUILD_JUCE_MODULES = conf.options.no_juce_libs
+    conf.env.BUILD_JUCE_MODULES = conf.options.enable_multi
     conf.env.BUILD_STATIC       = conf.options.static
     conf.env.INSTALL_HEADERS    = conf.options.install_headers
 
@@ -140,9 +140,9 @@ def configure (conf):
     conf.define ('JUCE_INCLUDE_PNGLIB_CODE', len(conf.env.LIB_PNG) <= 0)
     conf.define ('JUCE_INCLUDE_JPEGLIB_CODE', len(conf.env.LIB_JPEG) <= 0)
 
-    conf.define ('JUCE_WASAPI', False)
-    conf.define ('JUCE_DIRECTSOUND', False)
-    conf.define ('JUCE_WASAPI_EXCLUSIVE', False)
+    conf.define ('JUCE_WASAPI', 0)
+    conf.define ('JUCE_DIRECTSOUND', 0)
+    conf.define ('JUCE_WASAPI_EXCLUSIVE', 0)
 
     conf.define ('JUCE_STANDALONE_APPLICATION', 0)
     for mod in library_modules:
@@ -167,6 +167,11 @@ def configure (conf):
     juce.display_msg (conf, 'Build Modules', conf.env.BUILD_JUCE_MODULES)
     juce.display_msg (conf, 'Build Static Libraries', conf.env.BUILD_STATIC)
     juce.display_msg (conf, 'Module Path', conf.env.JUCE_MODULE_PATH)
+    if juce.is_mac():
+        print
+        juce.display_header ('OSX Configuration')
+        juce.display_msg (conf, 'Arch', conf.env.ARCH)
+        juce.display_msg (conf, 'Min OSX Version', conf.env.ARCH)
     print
     juce.display_header ('Global Compiler Flags')
     juce.display_msg (conf, 'CFLAGS', conf.env.CFLAGS)
@@ -191,7 +196,7 @@ def make_desktop (bld, slug):
              install_path = bld.env.DATADIR + "/applications"
         )
 
-def get_include_path(bld):
+def get_include_path (bld):
     return bld.env.INCLUDEDIR + '/juce-%s/juce' % JUCE_MAJOR_VERSION
 
 def install_module_headers (bld, modules):
@@ -214,9 +219,10 @@ def maybe_install_headers(bld):
         install_misc_header (bld, 'build/modules/config.h', '/modules')
         install_misc_header (bld, 'build/modules/version.h', '/modules')
 
-def module_slug (mod, debug=False):
-    slug = mod.replace ('_', '-')
-    if debug: slug += '-debug'
+def module_slug (ctx, mod):
+    debug = ctx.env.BUILD_DEBUGGABLE
+    slug = mod
+    if debug: slug += '_debug'
     slug += '-%s' % JUCE_MAJOR_VERSION
     return slug
 
@@ -306,32 +312,40 @@ def build_cross_mingw (bld):
     maybe_install_headers (bld)
 
 def build_modules (bld):
-    if juce.is_linux() and 'w64-mingw' in bld.env.CXX[0]:
-        return build_cross_mingw(bld)
-    elif juce.is_mac():
-        return build_osx (bld)
-
-    postfix = '_debug' if bld.env.BUILD_DEBUGGABLE else ''
-
-    libs = juce.build_modular_libs (bld, library_modules, JUCE_VERSION, postfix)
-    for lib in libs:
-        lib.includes += ['juce', 'src/modules']
-        lib.cxxflags = ['-DJUCE_APP_CONFIG_HEADER="modules/config.h"']
-
-    # Create pkg-config files for all built modules
     is_debug = bld.env.BUILD_DEBUGGABLE
+    postfix = '_debug' if is_debug else ''
+   
     for m in library_modules:
         module = juce.get_module_info (bld, m)
-        slug = module_slug(m, is_debug)
-        required_packages = ' '.join (module.requiredPackages (is_debug))
-        deplibs = ' '.join (module.linuxLibs())
+        slug = module_slug (bld, m)
+        
+        ext = 'mm' if juce.is_mac() else 'cpp'
+        if ext == 'mm' and not os.path.exists ('src/modules/%s/%s.mm' % (m, m)):
+            ext = 'cpp'
 
-        if m == 'juce_core':
-            for lib in bld.env.LIB_CURL:
-                deplibs += ' -l%s' % lib
+        # if juce.is_mac():
+        #     if m in 'juce_product_unlocking'.split():
+        #         continue
 
-        deplibs += ' -l%s' % library_slug(m, is_debug)
+        module_libname = '%s' % (module_slug (bld, m))
 
+        library = bld(
+            features    = 'cxxshlib cxx',
+            includes    = [ 'juce', 'src/modules' ],
+            source      = [ 'juce/%s.%s' % (m.replace ('juce_', ''), ext) ],
+            target      = 'lib/%s' % module_libname,
+            name        = m,
+            use         = module.dependencies()
+        )
+
+        if juce.is_mac():
+            library.use += module.osxFrameworks()
+            if m == 'juce_product_unlocking':
+                for e in 'juce_gui_extra juce_data_structures'.split():
+                    if e in library_modules:
+                        library.use.append (e)
+
+        # Pkg Config Files
         pcobj = bld (
             features     = 'subst',
             source       = 'juce-module.pc.in',
@@ -341,20 +355,30 @@ def build_modules (bld):
             PREFIX       = bld.env.PREFIX,
             INCLUDEDIR   = bld.env.INCLUDEDIR,
             LIBDIR       = bld.env.LIBDIR,
-            DEPLIBS      = deplibs,
-            REQUIRED     = required_packages,
+            DEPLIBS      = '-l%s' % module_libname,
+            REQUIRED     = module.requiredPackages(),
             NAME         = module.name(),
             DESCRIPTION  = module.description(),
             VERSION      = module.version(),
         )
 
+        if juce.is_mac():
+            for framework in module.osxFrameworks (False):
+                pcobj.DEPLIBS += ' -framework %s' % framework
+
     maybe_install_headers (bld)
+
+def build_single (bld):
+    if juce.is_mac():
+        build_osx (bld)
 
 def build (bld):
     bld.env.INSTALL_HEADERS = bld.options.install_headers
     
-    if juce.is_mac():
-        build_osx (bld)
+    if bld.env.BUILD_JUCE_MODULES:
+        build_modules (bld)
+    else:
+        build_single (bld)
 
     maybe_install_headers (bld)
 
