@@ -294,7 +294,7 @@ def build_cross_mingw (bld):
 
     maybe_install_headers (bld)
 
-def build_modules (bld):   
+def build_modules (bld):
     for m in library_modules:
         module = juce.get_module_info (bld, m)
         slug = module_slug (bld, m)
