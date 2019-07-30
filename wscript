@@ -178,24 +178,6 @@ def configure (conf):
     juce.display_msg (conf, 'CXXFLAGS', conf.env.CXXFLAGS)
     juce.display_msg (conf, 'LDFLAGS', conf.env.LINKFLAGS)
 
-def make_desktop (bld, slug):
-    if not juce.is_linux():
-        return
-
-    location = 'data'
-    src = "data/%s.desktop.in" % (slug)
-    tgt = "%s.desktop" % (slug)
-
-    if os.path.exists (src):
-        bld (features = "subst",
-             source    = src,
-             target    = tgt,
-             name      = tgt,
-             JUCE_BIN  = bld.env.BINDIR,
-             JUCE_DATA = "%s/juce" % (bld.env.DATADIR),
-             install_path = bld.env.DATADIR + "/applications"
-        )
-
 def get_include_path (bld, subpath=''):
     ip = '%s/juce-%s' % (bld.env.INCLUDEDIR, JUCE_MAJOR_VERSION)
     ip = os.path.join (ip, subpath) if len(subpath) > 0 else ip
@@ -254,15 +236,15 @@ def build_osx (bld):
     source.append ('project/dummy.cpp')
 
     bld.shlib (
-        source = source,
-        includes = [ 'juce', 'src/modules' ],
-        name = 'JUCE',
-        target = 'lib/%s' % library_slug (bld, 'juce'),
-        use = ['AUDIO_TOOLBOX', 'COCOA', 'CORE_AUDIO', 'CORE_MIDI', 'OPEN_GL', \
-               'ACCELERATE', 'IO_KIT', 'QUARTZ_CORE', 'WEB_KIT', 'CORE_MEDIA',
-               'AV_FOUNDATION', 'AV_KIT' ],
-        env = bld.env.derive(),
-        vnum = JUCE_VERSION
+        source      = source,
+        includes    = [ 'juce', 'src/modules' ],
+        name        = 'JUCE',
+        target      = 'lib/%s' % library_slug (bld, 'juce'),
+        use         = [ 'AUDIO_TOOLBOX', 'COCOA', 'CORE_AUDIO', 'CORE_MIDI', 'OPEN_GL', \
+                        'ACCELERATE', 'IO_KIT', 'QUARTZ_CORE', 'WEB_KIT', 'CORE_MEDIA',
+                        'AV_FOUNDATION', 'AV_KIT' ],
+        env         = bld.env.derive(),
+        vnum        = JUCE_VERSION
     )
 
     pcobj = bld (
@@ -312,10 +294,7 @@ def build_cross_mingw (bld):
 
     maybe_install_headers (bld)
 
-def build_modules (bld):
-    is_debug = bld.env.BUILD_DEBUGGABLE
-    postfix = '_debug' if is_debug else ''
-   
+def build_modules (bld):   
     for m in library_modules:
         module = juce.get_module_info (bld, m)
         slug = module_slug (bld, m)
@@ -323,10 +302,6 @@ def build_modules (bld):
         ext = 'mm' if juce.is_mac() else 'cpp'
         if ext == 'mm' and not os.path.exists ('src/modules/%s/%s.mm' % (m, m)):
             ext = 'cpp'
-
-        # if juce.is_mac():
-        #     if m in 'juce_product_unlocking'.split():
-        #         continue
 
         module_libname = '%s' % (module_slug (bld, m))
 
