@@ -27,9 +27,5 @@
     This header simply includes <juce/modules/config.h>
 */
 
-#ifndef LIBJUCE_APP_CONFIG_H
-#define LIBJUCE_APP_CONFIG_H
-
+#pragma once
 #include "./modules/config.h"
-
-#endif
