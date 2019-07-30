@@ -35,3 +35,4 @@ libjuce.config
 xcuserdata/
 
 /dist/
+/.vscode/
