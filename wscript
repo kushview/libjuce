@@ -82,6 +82,8 @@ def options (opts):
         dest="system_jpeg", help="Use system JPEG")
     opts.add_option('--system-png', default=False, action="store_true", \
         dest="system_png", help="Use system PNG")
+    opts.add_option('--enable-audio-unit', default=False, action="store_true", \
+        dest="audio_unit", help="Enable Audio Unit hosting support [ Default: disabled ]")
 
 def configure (conf):
     conf.prefer_clang()
@@ -153,8 +155,12 @@ def configure (conf):
     conf.define ('JUCE_WASAPI', 0)
     conf.define ('JUCE_DIRECTSOUND', 0)
     conf.define ('JUCE_WASAPI_EXCLUSIVE', 0)
+    
+    conf.define ('JUCE_PLUGINHOST_AU', conf.options.audio_unit)
+    conf.env.AUDIO_UNIT = conf.options.audio_unit
 
     conf.define ('JUCE_STANDALONE_APPLICATION', 0)
+    
     for mod in library_modules:
         conf.define('JUCE_MODULE_AVAILABLE_%s' % mod, True)
     conf.write_config_header ('juce/config.h', 'LIBJUCE_MODULES_CONFIG_H')
@@ -181,7 +187,8 @@ def configure (conf):
         print
         juce.display_header ('OSX Configuration')
         juce.display_msg (conf, 'Arch', conf.env.ARCH)
-        juce.display_msg (conf, 'Min OSX Version', conf.env.ARCH)
+        juce.display_msg (conf, 'Min OSX Version', conf.options.mac_version_min)
+        juce.display_msg (conf, 'AU Plugin Host', conf.options.audio_unit)
     print
     juce.display_header ('Global Compiler Flags')
     juce.display_msg (conf, 'CFLAGS', conf.env.CFLAGS)
@@ -241,7 +248,7 @@ def build_osx (bld):
         source.append (file)
     source.append ('project/dummy.cpp')
 
-    bld.shlib (
+    library = bld.shlib (
         source      = source,
         includes    = [ 'juce', 'src/modules' ],
         name        = 'JUCE',
@@ -252,6 +259,8 @@ def build_osx (bld):
         env         = bld.env.derive(),
         vnum        = JUCE_VERSION
     )
+    
+    if bld.env.AUDIO_UNIT: library.use.append ('CORE_AUDIO_KIT')
 
     pcobj = bld (
         features     = 'subst',

@@ -189,6 +189,7 @@ def configure (conf):
         conf.env.FRAMEWORK_ACCELERATE     = 'Accelerate'
         conf.env.FRAMEWORK_AUDIO_TOOLBOX  = 'AudioToolbox'
         conf.env.FRAMEWORK_CORE_AUDIO     = 'CoreAudio'
+        conf.env.FRAMEWORK_CORE_AUDIO_KIT = 'CoreAudioKit'
         conf.env.FRAMEWORK_CORE_MEDIA     = 'CoreMedia'
         conf.env.FRAMEWORK_CORE_MIDI      = 'CoreMIDI'
         conf.env.FRAMEWORK_COCOA          = 'Cocoa'
