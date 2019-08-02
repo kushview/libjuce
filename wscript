@@ -73,24 +73,40 @@ def options (opts):
     opts.add_option('--no-headers', default=True, action="store_false", \
         dest="install_headers", help="Don't install headers")
     opts.add_option('--enable-multi', default=False, action="store_true", \
-        dest="enable_multi", help="Don't compile modules as shared libraries")
+        dest="enable_multi", help="Compile individual modules as libraries")
     opts.add_option('--static', default=False, action="store_true", \
         dest="static", help="Build Static Libraries [ Default: False ]")
     opts.add_option('--ziptype', default='gz', type='string', \
         dest='ziptype', help="Zip type for waf dist (gz/bz2/zip) [ Default: gz ]")
+    
+    # Graphics
     opts.add_option('--system-jpeg', default=False, action="store_true", \
         dest="system_jpeg", help="Use system JPEG")
     opts.add_option('--system-png', default=False, action="store_true", \
         dest="system_png", help="Use system PNG")
+    
+    # audio devices
+    opts.add_option('--disable-alsa', default=True, action="store_false", \
+        dest="alsa", help="Disable ALSA support")
+    opts.add_option('--enable-jack', default=False, action="store_true", \
+        dest="jack", help="Enable JACK audio")
+
+    # audio processors
+    opts.add_option('--enable-vst', default=False, action="store_true", \
+        dest="vst", help="Enable VST hosting support [ Default: disabled ]")
+    opts.add_option('--enable-vst3', default=False, action="store_true", \
+        dest="vst3", help="Enable VST3 hosting support [ Default: disabled ]")
     opts.add_option('--enable-audio-unit', default=False, action="store_true", \
         dest="audio_unit", help="Enable Audio Unit hosting support [ Default: disabled ]")
+    opts.add_option('--enable-ladspa', default=False, action="store_true", \
+        dest="ladspa", help="Enable LADSPA hosting support [ Default: disabled ]")
 
 def configure (conf):
     conf.prefer_clang()
     conf.load ('compiler_c compiler_cxx')
     
     # Store options in environment
-    conf.env.BUILD_DEBUGGABLE   = conf.options.debug
+    conf.env.DEBUG              = conf.options.debug
     conf.env.BUILD_INTROJUCER   = conf.options.projucer
     conf.env.BUILD_JUCE_DEMO    = conf.options.juce_demo
     conf.env.BUILD_JUCE_MODULES = conf.options.enable_multi
@@ -101,6 +117,8 @@ def configure (conf):
     conf.env.LIBDIR     = conf.env.PREFIX + '/lib'
     conf.env.BINDIR     = conf.env.PREFIX + '/bin'
     conf.env.INCLUDEDIR = conf.env.PREFIX + '/include'
+
+    conf.env.MODULES    = library_modules
 
     # Write out the version header
     conf.define ("JUCE_VERSION", JUCE_VERSION)
@@ -141,22 +159,30 @@ def configure (conf):
 
     conf.write_config_header ("libjuce_config.h")
 
+    conf.env.ALSA   = conf.options.alsa and len(conf.env.HAVE_ALSA) > 0
+    conf.env.JACK   = conf.options.jack and len(conf.env.HAVE_JACK) > 0
+
     # Write juce/config.h
     conf.define ('JUCE_REPORT_APP_USAGE', 0)
     conf.define ('JUCE_DISPLAY_SPLASH_SCREEN', 0)
     conf.define ('JUCE_USE_DARK_SPLASH_SCREEN', 0)
 
     conf.define ('JUCE_USE_CURL', len(conf.env.LIB_CURL) > 0)
-    conf.define ('JUCE_USE_ALSA', len(conf.env.LIB_ALSA) > 0)
-    conf.define ('JUCE_USE_JACK', len(conf.env.LIB_JACK) > 0)
+    
     conf.define ('JUCE_INCLUDE_PNGLIB_CODE', len(conf.env.LIB_PNG) <= 0)
     conf.define ('JUCE_INCLUDE_JPEGLIB_CODE', len(conf.env.LIB_JPEG) <= 0)
 
+    conf.define ('JUCE_ALSA', conf.env.ALSA)
+    conf.define ('JUCE_JACK', conf.env.JACK)
     conf.define ('JUCE_WASAPI', 0)
     conf.define ('JUCE_DIRECTSOUND', 0)
     conf.define ('JUCE_WASAPI_EXCLUSIVE', 0)
     
     conf.define ('JUCE_PLUGINHOST_AU', conf.options.audio_unit)
+    conf.define ('JUCE_PLUGINHOST_VST', conf.options.vst)
+    conf.define ('JUCE_PLUGINHOST_VST3', conf.options.vst3)
+    conf.define ('JUCE_PLUGINHOST_LADSPA', conf.options.ladspa)
+
     conf.env.AUDIO_UNIT = conf.options.audio_unit
 
     conf.define ('JUCE_STANDALONE_APPLICATION', 0)
@@ -177,18 +203,35 @@ def configure (conf):
     juce.display_msg (conf, 'JUCE Library Version', VERSION)
     juce.display_msg (conf, 'Prefix', conf.env.PREFIX)
     juce.display_msg (conf, 'Install Headers', conf.env.INSTALL_HEADERS)
-    juce.display_msg (conf, 'Build Debuggable Libraries', conf.env.BUILD_DEBUGGABLE)
+    juce.display_msg (conf, 'Build Debuggable Libraries', conf.env.DEBUG)
     juce.display_msg (conf, 'Build Projucer', conf.env.BUILD_INTROJUCER)
     juce.display_msg (conf, 'Build Juce Demo', conf.env.BUILD_JUCE_DEMO)
     juce.display_msg (conf, 'Build Modules', conf.env.BUILD_JUCE_MODULES)
     juce.display_msg (conf, 'Build Static Libraries', conf.env.BUILD_STATIC)
     juce.display_msg (conf, 'Module Path', conf.env.JUCE_MODULE_PATH)
+    
+    print
+    juce.display_header ('Core')
+    juce.display_msg (conf, 'CURL', len(conf.env.LIB_CURL) > 0)
+
     if juce.is_mac():
         print
-        juce.display_header ('OSX Configuration')
-        juce.display_msg (conf, 'Arch', conf.env.ARCH)
-        juce.display_msg (conf, 'Min OSX Version', conf.options.mac_version_min)
-        juce.display_msg (conf, 'AU Plugin Host', conf.options.audio_unit)
+        juce.display_header ('Mac Options')
+        juce.display_msg (conf, 'OSX Arch', conf.env.ARCH)
+        juce.display_msg (conf, 'OSX Min Version', conf.options.mac_version_min)
+    
+    print
+    juce.display_header ('Audio Devices')
+    juce.display_msg (conf, 'JACK', conf.env.JACK)
+    juce.display_msg (conf, 'ALSA', conf.env.ALSA)
+
+    print
+    juce.display_header ('Plugin Host')
+    juce.display_msg (conf, 'AudioUnit', conf.options.audio_unit)
+    juce.display_msg (conf, 'VST', conf.options.vst)
+    juce.display_msg (conf, 'VST3', conf.options.vst3)
+    juce.display_msg (conf, 'LADSPA', conf.options.ladspa)
+
     print
     juce.display_header ('Global Compiler Flags')
     juce.display_msg (conf, 'CFLAGS', conf.env.CFLAGS)
@@ -219,14 +262,14 @@ def maybe_install_headers (bld):
     for header in ['juce/juce.h' ]:
         install_misc_header (bld, header, 'juce')
 
-    # for mod in library_modules:
-    #     install_misc_header (bld, "build/juce/%s.h" % mod.replace ('juce_', ''), 'juce')
+    for mod in library_modules:
+        install_misc_header (bld, "build/juce/%s.h" % mod.replace ('juce_', ''), 'juce')
 
     install_misc_header (bld, 'build/juce/config.h', 'juce')
     install_misc_header (bld, 'build/juce/version.h', 'juce')
 
 def module_slug (ctx, mod):
-    debug = ctx.env.BUILD_DEBUGGABLE
+    debug = ctx.env.DEBUG
     slug = mod
     if debug: slug += '_debug'
     slug += '-%s' % JUCE_MAJOR_VERSION
@@ -234,7 +277,7 @@ def module_slug (ctx, mod):
 
 def library_slug (ctx, name):
     mv = JUCE_MAJOR_VERSION
-    debug = ctx.env.BUILD_DEBUGGABLE
+    debug = ctx.env.DEBUG
     slug = name + '_debug-%s' % mv if debug else name + '-%s' % mv
     return slug
 
@@ -263,51 +306,30 @@ def build_osx (bld):
     if bld.env.AUDIO_UNIT: library.use.append ('CORE_AUDIO_KIT')
 
     pcobj = bld (
-        features     = 'subst',
-        source       = 'juce.pc.in',
-        target       = '%s.pc' % library_slug (bld, 'juce'),
-        install_path = bld.env.LIBDIR + '/pkgconfig',
-        MAJOR_VERSION= JUCE_MAJOR_VERSION,
-        PREFIX       = bld.env.PREFIX,
-        INCLUDEDIR   = bld.env.INCLUDEDIR,
-        LIBDIR       = bld.env.LIBDIR,
-        CFLAGS       = '',
-        DEPLIBS      = '-l%s' % library_slug (bld, 'juce'),
-        REQUIRED     = '',
-        NAME         = 'JUCE',
-        DESCRIPTION  = 'JUCE library modules',
-        VERSION      = JUCE_VERSION
+        features      = 'subst',
+        source        = 'juce.pc.in',
+        target        = '%s.pc' % library_slug (bld, 'juce'),
+        install_path  = os.path.join (bld.env.LIBDIR, 'pkgconfig'),
+        MAJOR_VERSION = JUCE_MAJOR_VERSION,
+        PREFIX        = bld.env.PREFIX,
+        INCLUDEDIR    = bld.env.INCLUDEDIR,
+        LIBDIR        = bld.env.LIBDIR,
+        CFLAGS        = '',
+        DEPLIBS       = '-l%s' % library_slug (bld, 'juce'),
+        REQUIRED      = '',
+        NAME          = 'JUCE',
+        DESCRIPTION   = 'JUCE library modules',
+        VERSION       = JUCE_VERSION
     )
 
-    if not bld.env.BUILD_DEBUGGABLE:
+    if not bld.env.DEBUG:
         pcobj.CFLAGS += ' -DNDEBUG=1'
     else:
         pcobj.CFLAGS += ' -DDEBUG=1'
 
 def build_cross_mingw (bld):
-    obj = juce.build_unified_library(bld, 'juce', library_modules)
-    obj.name = 'libjuce'
-    obj.vnum = JUCE_VERSION
-    obj.includes += ['juce', 'src/modules']
-    obj.use += mingw32_libs.upper().split()
-    obj.cxxflags = ['-DJUCE_APP_CONFIG_HEADER="juce/config.h"']
-    bld (
-        features     = 'subst',
-        source       = 'juce_module.pc.in',
-        target       = 'juce.pc',
-        install_path = bld.env.LIBDIR + '/pkgconfig',
-        MAJOR_VERSION= JUCE_MAJOR_VERSION,
-        PREFIX       = bld.env.PREFIX,
-        INCLUDEDIR   = bld.env.INCLUDEDIR,
-        LIBDIR       = bld.env.LIBDIR,
-        DEPLIBS      = '-l%s-%s' % ('juce', JUCE_MAJOR_VERSION),
-        REQUIRED     = '',
-        NAME         = 'libJUCE',
-        DESCRIPTION  = 'libJUCE',
-        VERSION      = JUCE_VERSION,
-    )
-
-    maybe_install_headers (bld)
+    '''Not yet supported'''
+    return
 
 def build_modules (bld):
     for m in library_modules:
@@ -354,7 +376,7 @@ def build_modules (bld):
             VERSION      = module.version(),
         )
 
-        if not bld.env.BUILD_DEBUGGABLE:
+        if not bld.env.DEBUG:
             pcobj.CFLAGS += ' -DNDEBUG=1'
         else:
             pcobj.CFLAGS += ' -DDEBUG=1'
@@ -369,14 +391,14 @@ def build_single (bld):
     if juce.is_mac():
         build_osx (bld)
 
-def generate_code(bld):
+def generate_code (bld):
     for mod in library_modules:
         bld (
             features     = 'subst',
             source       = 'module_header.h.in',
             target       = 'juce/%s.h' % mod.replace ('juce_', ''),
             name         = mod + "_h",
-            install_path = get_include_path (bld, 'juce'),
+            install_path = None,
             MODULE       = mod
         )
 
