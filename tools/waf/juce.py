@@ -282,7 +282,7 @@ class ModuleInfo:
         for dep in self.dependencies():
             pkg = dep #.replace ('_', '-')
             mv = self.version()[:1]
-            pkg += '-debug-%s' % (mv) if debug else '-%s' % (mv)
+            pkg += '_debug-%s' % (mv) if debug else '-%s' % (mv)
             pkgs.append (pkg)
 
         return list (set (pkgs))

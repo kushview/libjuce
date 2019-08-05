@@ -295,7 +295,7 @@ def build_osx (bld):
         source      = source,
         includes    = [ 'juce', 'src/modules' ],
         name        = 'JUCE',
-        target      = 'lib/%s' % library_slug (bld, 'juce'),
+        target      = 'local/lib/%s' % library_slug (bld, 'juce'),
         use         = [ 'AUDIO_TOOLBOX', 'COCOA', 'CORE_AUDIO', 'CORE_MIDI', 'OPEN_GL', \
                         'ACCELERATE', 'IO_KIT', 'QUARTZ_CORE', 'WEB_KIT', 'CORE_MEDIA',
                         'AV_FOUNDATION', 'AV_KIT' ],
@@ -332,7 +332,10 @@ def build_cross_mingw (bld):
     return
 
 def build_modules (bld):
-    for m in library_modules:
+    subst_env = bld.env.derive()
+    subst_env.CFLAGS = []
+
+    for m in bld.env.MODULES:
         module = juce.get_module_info (bld, m)
         slug = module_slug (bld, m)
         
@@ -346,9 +349,10 @@ def build_modules (bld):
             features    = 'cxxshlib cxx',
             includes    = [ 'juce', 'src/modules' ],
             source      = [ 'build/code/include_%s.%s' % (m, ext) ],
-            target      = 'lib/%s' % module_libname,
+            target      = 'local/lib/%s' % module_libname,
             name        = m,
-            use         = module.dependencies()
+            use         = module.dependencies(),
+            vnum        = module.version()
         )
 
         if juce.is_mac():
@@ -357,6 +361,9 @@ def build_modules (bld):
                 for e in 'juce_gui_extra juce_data_structures'.split():
                     if e in library_modules:
                         library.use.append (e)
+            elif m == 'juce_audio_processors':
+                if bld.env.AUDIO_UNIT:
+                    library.use.append ('CORE_AUDIO_KIT')
 
         # Pkg Config Files
         pcobj = bld (
@@ -364,13 +371,14 @@ def build_modules (bld):
             source       = 'juce_module.pc.in',
             target       = slug + '.pc',
             install_path = bld.env.LIBDIR + '/pkgconfig',
+            env          = subst_env,
             MAJOR_VERSION= JUCE_MAJOR_VERSION,
             PREFIX       = bld.env.PREFIX,
             INCLUDEDIR   = bld.env.INCLUDEDIR,
             LIBDIR       = bld.env.LIBDIR,
             CFLAGS       = '',
             DEPLIBS      = '-l%s' % module_libname,
-            REQUIRED     = module.requiredPackages(),
+            REQUIRED     = ' '.join (module.requiredPackages (bool (bld.env.DEBUG))),
             NAME         = module.name(),
             DESCRIPTION  = module.description(),
             VERSION      = module.version(),
@@ -384,6 +392,29 @@ def build_modules (bld):
         if juce.is_mac():
             for framework in module.osxFrameworks (False):
                 pcobj.DEPLIBS += ' -framework %s' % framework
+    
+    jpcobj = bld (
+        features     = 'subst',
+        source       = 'juce.pc.in',
+        target       = library_slug (bld, 'juce') + '.pc',
+        install_path = bld.env.LIBDIR + '/pkgconfig',
+        env          = subst_env,
+        MAJOR_VERSION= JUCE_MAJOR_VERSION,
+        PREFIX       = bld.env.PREFIX,
+        INCLUDEDIR   = bld.env.INCLUDEDIR,
+        LIBDIR       = bld.env.LIBDIR,
+        CFLAGS       = None,
+        DEPLIBS      = '',
+        REQUIRED     = '',
+        NAME         = 'JUCE',
+        DESCRIPTION  = 'JUCE',
+        VERSION      = VERSION,
+    )
+    required = []
+    for mod in bld.env.MODULES:
+        required.append (module_slug (bld, mod))
+
+    jpcobj.REQUIRED = ' '.join (required)
 
     maybe_install_headers (bld)
 
