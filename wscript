@@ -15,6 +15,7 @@ file COPYING for more details. '''
 import sys, os, platform
 from subprocess import call
 from waflib.extras import juce as juce
+from waflib.extras import autowaf as autowaf
 
 JUCE_VERSION = '5.4.3'
 JUCE_MAJOR_VERSION = JUCE_VERSION[0]
@@ -63,7 +64,8 @@ mingw32_libs = '''
 '''
 
 def options (opts):
-    opts.load ('compiler_c compiler_cxx juce')
+    autowaf.set_options (opts)
+    opts.load ('compiler_c compiler_cxx juce autowaf lv2')
     opts.add_option('--projucer', default=False, action="store_true", \
         dest="projucer", help="Build the Projucer [ Default: False ]")
     opts.add_option('--juce-demo', default=False, action="store_true", \
@@ -101,7 +103,7 @@ def options (opts):
 
 def configure (conf):
     conf.prefer_clang()
-    conf.load ('compiler_c compiler_cxx')
+    conf.load ('compiler_c compiler_cxx autowaf lv2')
     
     conf.env.DEBUG              = conf.options.debug
     conf.env.BUILD_PROJUCER     = conf.options.projucer
@@ -196,28 +198,16 @@ def configure (conf):
     conf.env.append_unique ('CFLAGS', '-I' + os.getcwd() + '/build')
 
     print
-    juce.display_header ('libJUCE Configuration')
-    juce.display_msg (conf, 'JUCE Library Version', VERSION)
+    juce.display_header ('libJUCE')
+    juce.display_msg (conf, 'Version', VERSION)
     juce.display_msg (conf, 'Prefix', conf.env.PREFIX)
-    juce.display_msg (conf, 'Install Headers', conf.env.INSTALL_HEADERS)
-    juce.display_msg (conf, 'Build Debuggable Libraries', conf.env.DEBUG)
-    juce.display_msg (conf, 'Build Projucer', conf.env.BUILD_PROJUCER)
-    juce.display_msg (conf, 'Build Juce Demo', conf.env.BUILD_JUCE_DEMO)
+    juce.display_msg (conf, 'Debuggable', conf.env.DEBUG)
     juce.display_msg (conf, 'Build Modules', conf.env.BUILD_JUCE_MODULES)
-    juce.display_msg (conf, 'Build Static Libraries', conf.env.BUILD_STATIC)
-    juce.display_msg (conf, 'Module Path', conf.env.JUCE_MODULE_PATH)
-    
+
     print
     juce.display_header ('Core')
     juce.display_msg (conf, 'CURL', len(conf.env.LIB_CURL) > 0)
 
-    if juce.is_mac():
-        print
-        juce.display_header ('Mac Options')
-        juce.display_msg (conf, 'OSX Arch', conf.env.ARCH)
-        juce.display_msg (conf, 'OSX Min Version', conf.options.mac_version_min)
-        juce.display_msg (conf, 'OSX SDK', conf.options.mac_sdk)
-    
     print
     juce.display_header ('Audio Devices')
     juce.display_msg (conf, 'JACK', conf.env.JACK)
@@ -234,6 +224,13 @@ def configure (conf):
     juce.display_header ('Applications')
     juce.display_msg (conf, 'Projucer', bool (conf.env.BUILD_PROJUCER))
 
+    if juce.is_mac():
+        print
+        juce.display_header ('Mac Options')
+        juce.display_msg (conf, 'OSX Arch', conf.env.ARCH)
+        juce.display_msg (conf, 'OSX Min Version', conf.options.mac_version_min)
+        juce.display_msg (conf, 'OSX SDK', conf.options.mac_sdk)
+    
     print
     juce.display_header ('Global Compiler Flags')
     juce.display_msg (conf, 'CFLAGS', conf.env.CFLAGS)
@@ -332,6 +329,14 @@ def build_osx (bld):
 def build_cross_mingw (bld):
     '''Not yet supported'''
     return
+
+def build_lv2_meta (bld):
+    bld (
+        features        = 'subst',
+        source          = 'plugins/juce.lv2/manifest.ttl.in',
+        target          = 'plugins/juce.lv2/manifest.ttl',
+        install_path    = bld.env.LV2DIR
+    )
 
 def build_modules (bld):
     subst_env = bld.env.derive()
@@ -464,6 +469,8 @@ def build (bld):
         build_modules (bld)
     else:
         build_single (bld)
+
+    build_lv2_meta (bld)
 
     def build_project (path, name):
         proj = juce.Project (bld, path)
