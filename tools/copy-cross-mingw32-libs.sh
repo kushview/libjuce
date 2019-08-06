@@ -1,4 +1,5 @@
 #!/bin/bash
+
 destdir="$1"
 if [ -z "$destdir" ]; then
   destdir="`pwd`/build"

@@ -4,7 +4,7 @@ A standardized build/install [JUCE](http://www.juce.com). This is done by compil
 modules as shared libraries and installing them to the system using the
 [Waf meta build system](https://waf.io)
 
-_**Note:** This is NOT the [official JUCE codebase](https://github.com/julianstorer/JUCE.git). This is just a waf build
+_**Note:** This is NOT the [official JUCE codebase](https://github.com/WeAreROLI/JUCE.git). It is a Waf build
 centered around upstream JUCE via a submodule._
 
 ### Building/Installing libJUCE
@@ -15,13 +15,6 @@ __Installing JUCE modules__
 cd path/to/libjuce
 ./waf configure build
 ./waf install # may require sudo
-```
-
-__Installing Introjucer and the JUCE demo__
-```
-cd path/to/libjuce
-./waf configure --introjucer --juce-demo build
-./waf install
 ```
 
 __Installing Debuggable Libraries__

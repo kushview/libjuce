@@ -14,9 +14,7 @@ file COPYING for more details. '''
 
 import sys, os, platform
 from subprocess import call
-
-sys.path.insert (0, "tools/waf")
-import juce
+from waflib.extras import juce as juce
 
 JUCE_VERSION = '5.4.3'
 JUCE_MAJOR_VERSION = JUCE_VERSION[0]
@@ -72,42 +70,41 @@ def options (opts):
         dest="juce_demo", help="Build the JUCE Demo [ Default: False ]")
     opts.add_option('--no-headers', default=True, action="store_false", \
         dest="install_headers", help="Don't install headers")
-    opts.add_option('--enable-multi', default=False, action="store_true", \
+    opts.add_option('--disable-multi', default=True, action="store_false", \
         dest="enable_multi", help="Compile individual modules as libraries")
     opts.add_option('--static', default=False, action="store_true", \
         dest="static", help="Build Static Libraries [ Default: False ]")
     opts.add_option('--ziptype', default='gz', type='string', \
         dest='ziptype', help="Zip type for waf dist (gz/bz2/zip) [ Default: gz ]")
     
-    # Graphics
-    opts.add_option('--system-jpeg', default=False, action="store_true", \
+    group = opts.add_option_group ("Graphics")
+    group.add_option('--system-jpeg', default=False, action="store_true", \
         dest="system_jpeg", help="Use system JPEG")
-    opts.add_option('--system-png', default=False, action="store_true", \
+    group.add_option('--system-png', default=False, action="store_true", \
         dest="system_png", help="Use system PNG")
     
-    # audio devices
-    opts.add_option('--disable-alsa', default=True, action="store_false", \
+    group = opts.add_option_group ("Audio Devices")
+    group.add_option('--disable-alsa', default=True, action="store_false", \
         dest="alsa", help="Disable ALSA support")
-    opts.add_option('--enable-jack', default=False, action="store_true", \
+    group.add_option('--enable-jack', default=False, action="store_true", \
         dest="jack", help="Enable JACK audio")
 
-    # audio processors
-    opts.add_option('--enable-vst', default=False, action="store_true", \
+    group = opts.add_option_group ("Audio Processors")
+    group.add_option('--enable-vst', default=False, action="store_true", \
         dest="vst", help="Enable VST hosting support [ Default: disabled ]")
-    opts.add_option('--enable-vst3', default=False, action="store_true", \
+    group.add_option('--enable-vst3', default=False, action="store_true", \
         dest="vst3", help="Enable VST3 hosting support [ Default: disabled ]")
-    opts.add_option('--enable-audio-unit', default=False, action="store_true", \
+    group.add_option('--enable-audio-unit', default=False, action="store_true", \
         dest="audio_unit", help="Enable Audio Unit hosting support [ Default: disabled ]")
-    opts.add_option('--enable-ladspa', default=False, action="store_true", \
+    group.add_option('--enable-ladspa', default=False, action="store_true", \
         dest="ladspa", help="Enable LADSPA hosting support [ Default: disabled ]")
 
 def configure (conf):
     conf.prefer_clang()
     conf.load ('compiler_c compiler_cxx')
     
-    # Store options in environment
     conf.env.DEBUG              = conf.options.debug
-    conf.env.BUILD_INTROJUCER   = conf.options.projucer
+    conf.env.BUILD_PROJUCER     = conf.options.projucer
     conf.env.BUILD_JUCE_DEMO    = conf.options.juce_demo
     conf.env.BUILD_JUCE_MODULES = conf.options.enable_multi
     conf.env.BUILD_STATIC       = conf.options.static
@@ -204,7 +201,7 @@ def configure (conf):
     juce.display_msg (conf, 'Prefix', conf.env.PREFIX)
     juce.display_msg (conf, 'Install Headers', conf.env.INSTALL_HEADERS)
     juce.display_msg (conf, 'Build Debuggable Libraries', conf.env.DEBUG)
-    juce.display_msg (conf, 'Build Projucer', conf.env.BUILD_INTROJUCER)
+    juce.display_msg (conf, 'Build Projucer', conf.env.BUILD_PROJUCER)
     juce.display_msg (conf, 'Build Juce Demo', conf.env.BUILD_JUCE_DEMO)
     juce.display_msg (conf, 'Build Modules', conf.env.BUILD_JUCE_MODULES)
     juce.display_msg (conf, 'Build Static Libraries', conf.env.BUILD_STATIC)
@@ -219,6 +216,7 @@ def configure (conf):
         juce.display_header ('Mac Options')
         juce.display_msg (conf, 'OSX Arch', conf.env.ARCH)
         juce.display_msg (conf, 'OSX Min Version', conf.options.mac_version_min)
+        juce.display_msg (conf, 'OSX SDK', conf.options.mac_sdk)
     
     print
     juce.display_header ('Audio Devices')
@@ -231,6 +229,10 @@ def configure (conf):
     juce.display_msg (conf, 'VST', conf.options.vst)
     juce.display_msg (conf, 'VST3', conf.options.vst3)
     juce.display_msg (conf, 'LADSPA', conf.options.ladspa)
+
+    print
+    juce.display_header ('Applications')
+    juce.display_msg (conf, 'Projucer', bool (conf.env.BUILD_PROJUCER))
 
     print
     juce.display_header ('Global Compiler Flags')
@@ -345,13 +347,13 @@ def build_modules (bld):
 
         module_libname = '%s' % (module_slug (bld, m))
 
-        library = bld(
+        library = bld (
             features    = 'cxxshlib cxx',
             includes    = [ 'juce', 'src/modules' ],
             source      = [ 'build/code/include_%s.%s' % (m, ext) ],
             target      = 'local/lib/%s' % module_libname,
-            name        = m,
-            use         = module.dependencies(),
+            name        = m.upper(),
+            use         = [u.upper() for u in module.dependencies()],
             vnum        = module.version()
         )
 
@@ -360,7 +362,7 @@ def build_modules (bld):
             if m == 'juce_product_unlocking':
                 for e in 'juce_gui_extra juce_data_structures'.split():
                     if e in library_modules:
-                        library.use.append (e)
+                        library.use.append (e.upper())
             elif m == 'juce_audio_processors':
                 if bld.env.AUDIO_UNIT:
                     library.use.append ('CORE_AUDIO_KIT')
@@ -463,6 +465,32 @@ def build (bld):
     else:
         build_single (bld)
 
+    def build_project (path, name):
+        proj = juce.Project (bld, path)
+        app = bld (
+            features    = 'cxx cxxprogram',
+            source      = proj.getProjectCode(),
+            includes    = [ '.', 'juce', 'src/modules', 'juce/compat/%s/Source' % name ],
+            name        = name,
+            target      = name,
+            use         = [u.upper() for u in proj.getModules()]
+        )
+        bd = os.path.join (proj.getLibraryCodePath(), 'BinaryData.cpp')
+        if os.path.exists (bd):
+            app.source.append (bd)
+        
+        if juce.is_mac():
+            app.mac_app = True
+            app.mac_plist = 'juce/compat/%s/Info-App.plist' % name
+            app.mac_files = [ 'src/extras/%s/Builds/MacOSX/RecentFilesMenuTemplate.nib' % name,
+                               'src/extras/%s/Builds/MacOSX/Icon.icns' % name ]
+            app.target = 'Applications/%s' % name
+
+        return app
+
+    if bld.env.BUILD_PROJUCER:
+        build_project ('src/extras/Projucer/Projucer.jucer', 'Projucer')
+    
     maybe_install_headers (bld)
 
 def dist (ctx):
