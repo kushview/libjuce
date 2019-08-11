@@ -65,7 +65,7 @@ mingw32_libs = '''
 
 def options (opts):
     autowaf.set_options (opts)
-    opts.load ('compiler_c compiler_cxx juce autowaf lv2')
+    opts.load ('compiler_c compiler_cxx juce autowaf')
     opts.add_option('--projucer', default=False, action="store_true", \
         dest="projucer", help="Build the Projucer [ Default: False ]")
     opts.add_option('--juce-demo', default=False, action="store_true", \
@@ -76,8 +76,13 @@ def options (opts):
         dest="enable_multi", help="Compile individual modules as libraries")
     opts.add_option('--static', default=False, action="store_true", \
         dest="static", help="Build Static Libraries [ Default: False ]")
+    
     opts.add_option('--ziptype', default='gz', type='string', \
         dest='ziptype', help="Zip type for waf dist (gz/bz2/zip) [ Default: gz ]")
+    
+    group = opts.add_option_group ("Analytics")
+    group.add_option('--exclude-analytics', default=True, action="store_false", \
+        dest="juce_analytics", help="Don't build JUCE Analytics module")
     
     group = opts.add_option_group ("Graphics")
     group.add_option('--system-jpeg', default=False, action="store_true", \
@@ -103,7 +108,7 @@ def options (opts):
 
 def configure (conf):
     conf.prefer_clang()
-    conf.load ('compiler_c compiler_cxx autowaf lv2')
+    conf.load ('compiler_c compiler_cxx autowaf')
     
     conf.env.DEBUG              = conf.options.debug
     conf.env.BUILD_PROJUCER     = conf.options.projucer
@@ -118,7 +123,9 @@ def configure (conf):
     conf.env.INCLUDEDIR = conf.env.PREFIX + '/include'
 
     conf.env.MODULES    = library_modules
-
+    if not conf.options.juce_analytics:
+        conf.env.MODULES.remove('juce_analytics')
+    
     # Write out the version header
     conf.define ("JUCE_VERSION", JUCE_VERSION)
     conf.define ("JUCE_MAJOR_VERSION", JUCE_MAJOR_VERSION)
@@ -129,6 +136,9 @@ def configure (conf):
 
     conf.check_cxx_version()
     conf.check_inline()
+    
+    if conf.options.vst3:
+        conf.env.VST3 = True
 
     cross_mingw = 'mingw32' in conf.env.CXX[0]
     if juce.is_mac():
@@ -202,7 +212,7 @@ def configure (conf):
     juce.display_msg (conf, 'Version', VERSION)
     juce.display_msg (conf, 'Prefix', conf.env.PREFIX)
     juce.display_msg (conf, 'Debuggable', conf.env.DEBUG)
-    juce.display_msg (conf, 'Build Modules', conf.env.BUILD_JUCE_MODULES)
+    juce.display_msg (conf, 'Modules', [m.replace('juce_', '') for m in conf.env.MODULES])
 
     print
     juce.display_header ('Core')
@@ -217,7 +227,7 @@ def configure (conf):
     juce.display_header ('Plugin Host')
     juce.display_msg (conf, 'AudioUnit', conf.options.audio_unit)
     juce.display_msg (conf, 'VST', conf.options.vst)
-    juce.display_msg (conf, 'VST3', conf.options.vst3)
+    juce.display_msg (conf, 'VST3', conf.env.VST3)
     juce.display_msg (conf, 'LADSPA', conf.options.ladspa)
 
     print
@@ -361,7 +371,10 @@ def build_modules (bld):
             use         = [u.upper() for u in module.dependencies()],
             vnum        = module.version()
         )
-
+        
+        if bld.env.VST3:
+            library.includes.append ('src/modules/juce_audio_processors/format_types/VST3_SDK')
+        
         if juce.is_mac():
             library.use += module.osxFrameworks()
             if m == 'juce_product_unlocking':
@@ -512,3 +525,7 @@ def dist (ctx):
     ctx.excl = ' **/.waf-1* **/.waf-2* **/*~ **/*.pyc **/*.swp **/.lock-w*'
     ctx.excl += ' **/.gitignore **/.gitmodules **/.git dist build **/.DS_Store'
     ctx.excl += ' project/Builds **/.vscode'
+
+def macdeploy (ctx):
+    call (["tools/appbundle.py", "-verbose", "2",
+            "build/Applications/Projucer.app"])
