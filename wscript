@@ -340,14 +340,6 @@ def build_cross_mingw (bld):
     '''Not yet supported'''
     return
 
-def build_lv2_meta (bld):
-    bld (
-        features        = 'subst',
-        source          = 'plugins/juce.lv2/manifest.ttl.in',
-        target          = 'plugins/juce.lv2/manifest.ttl',
-        install_path    = bld.env.LV2DIR
-    )
-
 def build_modules (bld):
     subst_env = bld.env.derive()
     subst_env.CFLAGS = []
@@ -483,8 +475,6 @@ def build (bld):
     else:
         build_single (bld)
 
-    build_lv2_meta (bld)
-
     def build_project (path, name):
         proj = juce.Project (bld, path)
         app = bld (
@@ -510,6 +500,8 @@ def build (bld):
 
     if bld.env.BUILD_PROJUCER:
         build_project ('src/extras/Projucer/Projucer.jucer', 'Projucer')
+        if juce.is_mac():
+            bld.add_post_fun(macdeploy)
     
     maybe_install_headers (bld)
 
