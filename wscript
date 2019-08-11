@@ -117,14 +117,19 @@ def configure (conf):
     conf.env.BUILD_STATIC       = conf.options.static
     conf.env.INSTALL_HEADERS    = conf.options.install_headers
 
-    conf.env.DATADIR    = conf.env.PREFIX + '/share'
-    conf.env.LIBDIR     = conf.env.PREFIX + '/lib'
-    conf.env.BINDIR     = conf.env.PREFIX + '/bin'
-    conf.env.INCLUDEDIR = conf.env.PREFIX + '/include'
+    conf.env.VST3               = conf.options.vst3
+    conf.env.VST                = conf.options.vst
+    conf.env.LADSPA             = conf.options.ladspa
+    conf.env.AUDIO_UNIT         = conf.options.audio_unit
+
+    conf.env.DATADIR            = conf.env.PREFIX + '/share'
+    conf.env.LIBDIR             = conf.env.PREFIX + '/lib'
+    conf.env.BINDIR             = conf.env.PREFIX + '/bin'
+    conf.env.INCLUDEDIR         = conf.env.PREFIX + '/include'
 
     conf.env.MODULES    = library_modules
     if not conf.options.juce_analytics:
-        conf.env.MODULES.remove('juce_analytics')
+        conf.env.MODULES.remove ('juce_analytics')
     
     # Write out the version header
     conf.define ("JUCE_VERSION", JUCE_VERSION)
@@ -137,9 +142,6 @@ def configure (conf):
     conf.check_cxx_version()
     conf.check_inline()
     
-    if conf.options.vst3:
-        conf.env.VST3 = True
-
     cross_mingw = 'mingw32' in conf.env.CXX[0]
     if juce.is_mac():
         pass
@@ -167,9 +169,9 @@ def configure (conf):
             conf.check (lib=l, uselib_store=l.upper(), mandatory=True)
 
     conf.write_config_header ("libjuce_config.h")
-
-    conf.env.ALSA   = conf.options.alsa and len(conf.env.HAVE_ALSA) > 0
-    conf.env.JACK   = conf.options.jack and len(conf.env.HAVE_JACK) > 0
+    
+    conf.env.ALSA = conf.options.alsa and len(conf.env.HAVE_ALSA) > 0
+    conf.env.JACK = conf.options.jack and len(conf.env.HAVE_JACK) > 0
 
     # Write juce/config.h
     conf.define ('JUCE_REPORT_APP_USAGE', 0)
@@ -191,8 +193,6 @@ def configure (conf):
     conf.define ('JUCE_PLUGINHOST_VST', conf.options.vst)
     conf.define ('JUCE_PLUGINHOST_VST3', conf.options.vst3)
     conf.define ('JUCE_PLUGINHOST_LADSPA', conf.options.ladspa)
-
-    conf.env.AUDIO_UNIT = conf.options.audio_unit
 
     conf.define ('JUCE_STANDALONE_APPLICATION', 0)
     
@@ -225,10 +225,10 @@ def configure (conf):
 
     print
     juce.display_header ('Plugin Host')
-    juce.display_msg (conf, 'AudioUnit', conf.options.audio_unit)
-    juce.display_msg (conf, 'VST', conf.options.vst)
-    juce.display_msg (conf, 'VST3', conf.env.VST3)
-    juce.display_msg (conf, 'LADSPA', conf.options.ladspa)
+    juce.display_msg (conf, 'AudioUnit',    conf.env.AUDIO_UNIT)
+    juce.display_msg (conf, 'VST',          conf.env.VST)
+    juce.display_msg (conf, 'VST3',         conf.env.VST3)
+    juce.display_msg (conf, 'LADSPA',       conf.env.LADSPA)
 
     print
     juce.display_header ('Applications')
@@ -490,11 +490,11 @@ def build (bld):
             app.source.append (bd)
         
         if juce.is_mac():
-            app.mac_app = True
-            app.mac_plist = 'juce/compat/%s/Info-App.plist' % name
-            app.mac_files = [ 'src/extras/%s/Builds/MacOSX/RecentFilesMenuTemplate.nib' % name,
-                               'src/extras/%s/Builds/MacOSX/Icon.icns' % name ]
-            app.target = 'Applications/%s' % name
+            app.mac_app         = True
+            app.mac_plist       = 'juce/compat/%s/Info-App.plist' % name
+            app.mac_files       = [ 'src/extras/%s/Builds/MacOSX/RecentFilesMenuTemplate.nib' % name,
+                                    'src/extras/%s/Builds/MacOSX/Icon.icns' % name ]
+            app.target          = 'Applications/%s' % name
 
         return app
 
