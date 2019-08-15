@@ -16,6 +16,7 @@ import sys, os, platform
 from subprocess import call
 from waflib.extras import juce as juce
 from waflib.extras import autowaf as autowaf
+from waflib.extras import cross as cross
 
 JUCE_VERSION = '5.4.3'
 JUCE_MAJOR_VERSION = JUCE_VERSION[0]
@@ -65,7 +66,7 @@ mingw32_libs = '''
 
 def options (opts):
     autowaf.set_options (opts)
-    opts.load ('compiler_c compiler_cxx juce autowaf')
+    opts.load ('compiler_c compiler_cxx cross juce autowaf')
     opts.add_option('--projucer', default=False, action="store_true", \
         dest="projucer", help="Build the Projucer [ Default: False ]")
     opts.add_option('--juce-demo', default=False, action="store_true", \
@@ -107,8 +108,12 @@ def options (opts):
         dest="ladspa", help="Enable LADSPA hosting support [ Default: disabled ]")
 
 def configure (conf):
-    conf.prefer_clang()
-    conf.load ('compiler_c compiler_cxx autowaf')
+    if len(conf.options.cross) > 0:
+        cross.setup_compiler (conf)
+    else:
+       conf.prefer_clang()
+
+    conf.load ('compiler_c compiler_cxx juce autowaf')
     
     conf.env.DEBUG              = conf.options.debug
     conf.env.BUILD_DOCS         = conf.options.docs
@@ -144,7 +149,7 @@ def configure (conf):
     conf.check_inline()
     
     cross_mingw = 'mingw32' in conf.env.CXX[0]
-    if juce.is_mac():
+    if not cross_mingw and juce.is_mac():
         pass
 
     elif not cross_mingw and juce.is_linux():
