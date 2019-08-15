@@ -305,6 +305,17 @@ class ModuleInfo:
 
         return libs
 
+    def linuxPackages (self):
+        libs = []
+
+        if None == self.data or not is_linux() or not 'linuxPackages' in self.data:
+            return libs
+
+        for lib in self.data ['linuxPackages'].split():
+            libs.append (lib.upper())
+
+        return libs
+
     def mingwLibs (self):
         libs = []
         if None == self.data or not 'mingwLibs' in self.data:

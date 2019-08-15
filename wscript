@@ -147,6 +147,9 @@ def configure (conf):
         pass
 
     elif not cross_mingw and juce.is_linux():
+        conf.check (header_name='pthread.h', uselib_store='PTHREAD', mandatory=True)
+        conf.check (lib='pthread', uselib_store='PTHREAD', mandatory=True)
+
         if conf.options.system_png:
             conf.check_cfg (package='libpng', uselib_store='PNG', args=['--libs', '--cflags'], mandatory=True)
 
@@ -155,12 +158,21 @@ def configure (conf):
             conf.check (header_name='jpegint.h', uselib_store='JPEG', mandatory=True, auto_add_header_name=True)
             conf.check (header_name='jpeglib.h', uselib_store='JPEG', mandatory=True)
             conf.check (lib='jpeg', uselib_store='JPEG', mandatory=True)
+        
+        conf.check (header_name='ladspa.h', uselib_store='LADSPA', 
+                    mandatory=conf.options.ladspa)
 
-        conf.check_cfg (package='freetype2', uselib_store='FREETYPE', args=['--libs', '--cflags'], mandatory=True)
+        conf.check_cfg (package='freetype2', uselib_store='FREETYPE2', args=['--libs', '--cflags'], mandatory=True)
         conf.check_cfg (package='libcurl', uselib_store='CURL', args=['--libs', '--cflags'], mandatory=False)
         conf.check_cfg (package='x11',  uselib_store='X11',  args=['--libs', '--cflags'], mandatory=True)
         conf.check_cfg (package='xext', uselib_store='XEXT', args=['--libs', '--cflags'], mandatory=True)
-        conf.check_cfg (package='gl',   uselib_store='GL',   args=['--libs', '--cflags'], mandatory=True)
+        conf.check_cfg (package='xinerama', uselib_store='XINERAMA', args=['--libs', '--cflags'], mandatory=False)
+        conf.check_cfg (package='xrandr', uselib_store='XRANDR', args=['--libs', '--cflags'], mandatory=True)
+        conf.check_cfg (package='xcursor', uselib_store='XCURSOR', args=['--libs', '--cflags'], mandatory=True)
+        conf.check_cfg (package='gl', uselib_store='GL', args=['--libs', '--cflags'], mandatory=False)
+        conf.check_cfg (package='gtk+-3.0',   uselib_store='GTK',   args=['--libs', '--cflags'], mandatory=False)
+        conf.check_cfg (package='webkit2gtk-4.0',   uselib_store='WEBKIT',   args=['--libs', '--cflags'], mandatory=False)
+        
         conf.check_cfg (package='alsa', uselib_store='ALSA', args=['--libs', '--cflags'], mandatory=True)
         conf.check_cfg (package='jack', uselib_store='JACK', args=['--libs', '--cflags'], mandatory=False)
 
@@ -169,19 +181,25 @@ def configure (conf):
             conf.check (lib=l, uselib_store=l.upper(), mandatory=True)
 
     conf.write_config_header ("libjuce_config.h")
-    
-    conf.env.ALSA = conf.options.alsa and len(conf.env.HAVE_ALSA) > 0
-    conf.env.JACK = conf.options.jack and len(conf.env.HAVE_JACK) > 0
+
+    conf.env.ALSA = conf.options.alsa and bool(conf.env.HAVE_ALSA)
+    conf.env.JACK = conf.options.jack and bool(conf.env.HAVE_JACK)
 
     # Write juce/config.h
     conf.define ('JUCE_REPORT_APP_USAGE', 0)
     conf.define ('JUCE_DISPLAY_SPLASH_SCREEN', 0)
     conf.define ('JUCE_USE_DARK_SPLASH_SCREEN', 0)
 
-    conf.define ('JUCE_USE_CURL', len(conf.env.LIB_CURL) > 0)
+    conf.define ('JUCE_USE_CURL', bool(conf.env.HAVE_CURL))
     
-    conf.define ('JUCE_INCLUDE_PNGLIB_CODE', len(conf.env.LIB_PNG) <= 0)
-    conf.define ('JUCE_INCLUDE_JPEGLIB_CODE', len(conf.env.LIB_JPEG) <= 0)
+    conf.define ('JUCE_INCLUDE_PNGLIB_CODE', not bool(conf.env.LIB_PNG))
+    conf.define ('JUCE_INCLUDE_JPEGLIB_CODE', not bool(conf.env.LIB_JPEG))
+
+    if juce.is_linux():
+        conf.env.WEB_BROWSER = bool(conf.env.HAVE_GTK) and bool(conf.env.HAVE_WEBKIT)
+    else:
+        conf.env.WEB_BROWSER = True
+    conf.define ('JUCE_WEB_BROWSER', conf.env.WEB_BROWSER)
 
     conf.define ('JUCE_ALSA', conf.env.ALSA)
     conf.define ('JUCE_JACK', conf.env.JACK)
@@ -192,7 +210,7 @@ def configure (conf):
     conf.define ('JUCE_PLUGINHOST_AU', conf.options.audio_unit)
     conf.define ('JUCE_PLUGINHOST_VST', conf.options.vst)
     conf.define ('JUCE_PLUGINHOST_VST3', conf.options.vst3)
-    conf.define ('JUCE_PLUGINHOST_LADSPA', conf.options.ladspa)
+    conf.define ('JUCE_PLUGINHOST_LADSPA', conf.options.ladspa and bool(conf.env.HAVE_LADSPA))
 
     conf.define ('JUCE_STANDALONE_APPLICATION', 0)
     
@@ -212,16 +230,29 @@ def configure (conf):
     juce.display_msg (conf, 'Version', VERSION)
     juce.display_msg (conf, 'Prefix', conf.env.PREFIX)
     juce.display_msg (conf, 'Debuggable', conf.env.DEBUG)
-    juce.display_msg (conf, 'Modules', [m.replace('juce_', '') for m in conf.env.MODULES])
+
+    print
+    juce.display_header ('Modules')
+    for m in library_modules:
+        juce.display_msg (conf, m.replace('juce_', ''), m in conf.env.MODULES)
 
     print
     juce.display_header ('Core')
-    juce.display_msg (conf, 'CURL', len(conf.env.LIB_CURL) > 0)
+    juce.display_msg (conf, 'CURL', bool(conf.env.LIB_CURL))
 
     print
     juce.display_header ('Audio Devices')
     juce.display_msg (conf, 'JACK', conf.env.JACK)
     juce.display_msg (conf, 'ALSA', conf.env.ALSA)
+
+    print
+    juce.display_header ('Graphics')
+    juce.display_msg (conf, 'System PNG', bool(conf.env.LIB_PNG))
+    juce.display_msg (conf, 'System JPEG', bool(conf.env.LIB_JPEG))
+    
+    print
+    juce.display_header ('GUI Extra')
+    juce.display_msg (conf, 'Web Browser', conf.env.WEB_BROWSER)
 
     print
     juce.display_header ('Plugin Host')
@@ -367,6 +398,12 @@ def build_modules (bld):
         if bld.env.VST3:
             library.includes.append ('src/modules/juce_audio_processors/format_types/VST3_SDK')
         
+        if juce.is_linux():
+            library.use += module.linuxPackages()
+            if m == 'juce_gui_extra':
+                if bool(bld.env.HAVE_WEBKIT):
+                    library.use.append('WEBKIT')
+
         if juce.is_mac():
             library.use += module.osxFrameworks()
             if m == 'juce_product_unlocking':
