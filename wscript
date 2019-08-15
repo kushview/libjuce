@@ -111,9 +111,10 @@ def configure (conf):
     conf.load ('compiler_c compiler_cxx autowaf')
     
     conf.env.DEBUG              = conf.options.debug
+    conf.env.BUILD_DOCS         = conf.options.docs
     conf.env.BUILD_PROJUCER     = conf.options.projucer
     conf.env.BUILD_JUCE_DEMO    = conf.options.juce_demo
-    conf.env.BUILD_JUCE_MODULES = conf.options.enable_multi
+    conf.env.BUILD_MULTI        = conf.options.enable_multi
     conf.env.BUILD_STATIC       = conf.options.static
     conf.env.INSTALL_HEADERS    = conf.options.install_headers
 
@@ -507,7 +508,7 @@ def build (bld):
     
     generate_code (bld)
 
-    if bld.env.BUILD_JUCE_MODULES:
+    if bld.env.BUILD_MULTI:
         build_modules (bld)
     else:
         build_single (bld)
@@ -541,6 +542,16 @@ def build (bld):
             bld.add_post_fun(macdeploy)
     
     maybe_install_headers (bld)
+
+    if bld.env.BUILD_DOCS:
+        if not bld.is_install:
+            bld.add_post_fun(build_docs)
+        bld.install_files (bld.env.DOCDIR, \
+                           bld.path.ant_glob ("build/doc/**/*"), \
+                           relative_trick=True, cwd=bld.path.find_dir ('build/doc'))
+
+def build_docs(ctx):
+    call(['bash', 'tools/build-docs.sh'])
 
 def dist (ctx):
     z = ctx.options.ziptype
