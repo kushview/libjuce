@@ -37,7 +37,7 @@
             ],
             "compilerPath": "/usr/local/bin/gcc-6",
             "cStandard": "c11",
-            "cppStandard": "c++17"
+            "cppStandard": "c++14"
         },
         {
             "name": "Linux",
@@ -57,9 +57,9 @@
                 "limitSymbolsToIncludedHeaders": true,
                 "databaseFilename": ""
             },
-            "compilerPath": "/usr/local/bin/gcc-6",
+            "compilerPath": "/usr/bin/gcc-7",
             "cStandard": "c11",
-            "cppStandard": "c++17"
+            "cppStandard": "c++14"
         },
         {
             "name": "Win32",
