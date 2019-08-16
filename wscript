@@ -14,6 +14,8 @@ file COPYING for more details. '''
 
 import sys, os, platform
 from subprocess import call
+
+from waflib import Logs
 from waflib.extras import juce as juce
 from waflib.extras import autowaf as autowaf
 from waflib.extras import cross as cross
@@ -379,6 +381,10 @@ def build_cross_mingw (bld):
     return
 
 def build_modules (bld):
+    if 'mingw' in bld.env.CXX[0]:
+        Logs.warn('Cannot compile multiple libraries with: %s' % bld.env.CXX[0])
+        return
+    
     subst_env = bld.env.derive()
     subst_env.CFLAGS = []
 
@@ -411,7 +417,6 @@ def build_modules (bld):
                 if 'juce_gui_extra' in bld.env.MODULES:
                     # library.use.remove ('JUCE_CORE')
                     library.use.append ('JUCE_GUI_EXTRA')
-                print library.use
         
         elif juce.is_linux():
             library.use += module.linuxPackages()
