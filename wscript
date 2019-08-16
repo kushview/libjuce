@@ -111,7 +111,7 @@ def configure (conf):
     if len(conf.options.cross) > 0:
         cross.setup_compiler (conf)
     else:
-       conf.prefer_clang()
+        conf.prefer_clang()
 
     conf.load ('compiler_c compiler_cxx juce autowaf')
     
@@ -411,7 +411,7 @@ def build_modules (bld):
                     library.use.append('WEBKIT')
 
         if juce.is_mac():
-            library.use += module.osxFrameworks()
+                library.use += module.osxFrameworks()
             if m == 'juce_product_unlocking':
                 for e in 'juce_gui_extra juce_data_structures'.split():
                     if e in library_modules:
