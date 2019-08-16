@@ -323,7 +323,7 @@ class ModuleInfo:
         libs = []
         if None == self.data or not 'mingwLibs' in self.data:
             return libs
-        return libs
+
         for lib in self.data ['mingwLibs'].split():
             l = '-l%s' % lib
             libs.append (l)

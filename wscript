@@ -109,7 +109,8 @@ def options (opts):
 
 def configure (conf):
     if len(conf.options.cross) > 0:
-        cross.setup_compiler (conf)
+        conf.env.CHOST = conf.options.cross
+        conf.load ('cross_gnu')
     else:
         conf.prefer_clang()
 
@@ -385,7 +386,7 @@ def build_modules (bld):
         module = juce.get_module_info (bld, m)
         slug = module_slug (bld, m)
         
-        ext = 'mm' if juce.is_mac() else 'cpp'
+        ext = 'mm' if juce.is_mac() and not 'mingw' in bld.env.CXX [0] else 'cpp'
         if ext == 'mm' and not os.path.exists ('src/modules/%s/%s.mm' % (m, m)):
             ext = 'cpp'
 
@@ -404,14 +405,22 @@ def build_modules (bld):
         if bld.env.VST3:
             library.includes.append ('src/modules/juce_audio_processors/format_types/VST3_SDK')
         
-        if juce.is_linux():
+        if 'mingw' in bld.env.CXX[0]:
+            library.use += [l.replace('-l','').upper() for l in module.mingwLibs()]
+            if m == 'juce_events':
+                if 'juce_gui_extra' in bld.env.MODULES:
+                    # library.use.remove ('JUCE_CORE')
+                    library.use.append ('JUCE_GUI_EXTRA')
+                print library.use
+        
+        elif juce.is_linux():
             library.use += module.linuxPackages()
             if m == 'juce_gui_extra':
                 if bool(bld.env.HAVE_WEBKIT):
                     library.use.append('WEBKIT')
 
-        if juce.is_mac():
-                library.use += module.osxFrameworks()
+        elif juce.is_mac():
+            library.use += module.osxFrameworks()
             if m == 'juce_product_unlocking':
                 for e in 'juce_gui_extra juce_data_structures'.split():
                     if e in library_modules:
