@@ -136,10 +136,16 @@ def configure (conf):
     conf.env.BINDIR             = conf.env.PREFIX + '/bin'
     conf.env.INCLUDEDIR         = conf.env.PREFIX + '/include'
 
-    conf.env.MODULES    = library_modules
+    conf.env.MODULES = library_modules
     if not conf.options.juce_analytics:
         conf.env.MODULES.remove ('juce_analytics')
     
+    if 'mingw' in conf.env.CXX[0]:
+        Logs.warn('juce_video not supported with mingw')
+        conf.env.MODULES.remove('juce_video')
+
+    print conf.env.MODULES
+
     # Write out the version header
     conf.define ("JUCE_VERSION", JUCE_VERSION)
     conf.define ("JUCE_MAJOR_VERSION", JUCE_MAJOR_VERSION)
@@ -330,29 +336,50 @@ def library_slug (ctx, name):
     slug = name + '_debug-%s' % mv if debug else name + '-%s' % mv
     return slug
 
-def build_osx (bld):
-    source = [ ]
-    for mod in library_modules:
-        extension = 'mm'
+def build_single (bld):
+    source = []
+    use_flags = []
+
+    for mod in bld.env.MODULES:
+        module = juce.ModuleInfo ('src/modules/%s/%s.h' % (mod, mod))
+
+        extension = 'mm' if juce.is_mac() and not 'mingw' in bld.env.CXX[0] else 'cpp'
         if mod in cpponly_modules:
             extension = 'cpp'
         file = 'build/code/include_%s.%s' % (mod, extension)
         source.append (file)
-    source.append ('project/dummy.cpp')
+
+        if 'mingw' in bld.env.CXX[0]:
+            use_flags += [l.replace('-l','').upper() for l in module.mingwLibs()]
+            use_flags.append ('GDI32')
+        elif juce.is_mac():
+            use_flags += module.osxFrameworks()
+        elif juce.is_linux():
+            use_flags += module.linuxPackages()
+
+    source.append ('tools/jucer/dummy.cpp')
 
     library = bld.shlib (
         source      = source,
         includes    = [ 'juce', 'src/modules' ],
         name        = 'JUCE',
         target      = 'local/lib/%s' % library_slug (bld, 'juce'),
-        use         = [ 'AUDIO_TOOLBOX', 'COCOA', 'CORE_AUDIO', 'CORE_MIDI', 'OPEN_GL', \
-                        'ACCELERATE', 'IO_KIT', 'QUARTZ_CORE', 'WEB_KIT', 'CORE_MEDIA',
-                        'AV_FOUNDATION', 'AV_KIT' ],
+        use         = use_flags,
         env         = bld.env.derive(),
         vnum        = JUCE_VERSION
     )
     
-    if bld.env.AUDIO_UNIT: library.use.append ('CORE_AUDIO_KIT')
+    if 'mingw' in bld.env.CXX[0]:
+        pass
+    
+    elif juce.is_mac():
+        bld.env.use += []
+        if bld.env.AUDIO_UNIT: library.use.append ('CORE_AUDIO_KIT')
+                
+
+
+    elif juce.is_linux():
+        pass
 
     pcobj = bld (
         features      = 'subst',
@@ -486,10 +513,6 @@ def build_modules (bld):
     jpcobj.REQUIRED = ' '.join (required)
 
     maybe_install_headers (bld)
-
-def build_single (bld):
-    if juce.is_mac():
-        build_osx (bld)
 
 def generate_code (bld):
     for mod in library_modules:
