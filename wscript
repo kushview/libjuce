@@ -141,10 +141,7 @@ def configure (conf):
         conf.env.MODULES.remove ('juce_analytics')
     
     if 'mingw' in conf.env.CXX[0]:
-        Logs.warn('juce_video not supported with mingw')
         conf.env.MODULES.remove('juce_video')
-
-    print conf.env.MODULES
 
     # Write out the version header
     conf.define ("JUCE_VERSION", JUCE_VERSION)
