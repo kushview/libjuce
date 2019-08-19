@@ -4,7 +4,7 @@
 
 A standardized build of [JUCE](http://www.juce.com). This is done by compiling upstream [JUCE](http://www.juce.com) modules as shared libraries and installing them to the system using the [Waf meta build system](https://waf.io)
 
-_**Note:** This is NOT the [official JUCE codebase](https://github.com/WeAreROLI/JUCE.git)._
+_**Note:** This is NOT the [official JUCE codebase](https://github.com/WeAreROLI/JUCE.git). This project includes the official source as a submodule_ 
 
 ### Building/Installing libJUCE
 Since this uses waf, installation is easy. From the command line:
@@ -26,8 +26,8 @@ __Complete Installation__
 
 _See:_ [tools/install.sh](tools/install.sh)
 
-The PREFIX envronment variable can be used to determine the install location
+Any options added after the script will be appended to `./waf configure`. For example...
 
 ```
-PREFIX=/opt/mydir bash tools/install.sh
+tools/install.sh --prefix=/opt/sdk
 ```
