@@ -444,9 +444,12 @@ def build_modules (bld):
         
         elif juce.is_linux():
             library.use += module.linuxPackages()
+            if m == 'juce_core':
+                if bool(bld.env.HAVE_CURL):
+                    library.use.append ('CURL')
             if m == 'juce_gui_extra':
                 if bool(bld.env.HAVE_WEBKIT):
-                    library.use.append('WEBKIT')
+                    library.use.append ('WEBKIT')
 
         elif juce.is_mac():
             library.use += module.osxFrameworks()
