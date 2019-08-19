@@ -1,11 +1,10 @@
 ## libJUCE
 
-A standardized build/install [JUCE](http://www.juce.com). This is done by compiling upstream [JUCE](http://www.juce.com)
-modules as shared libraries and installing them to the system using the
-[Waf meta build system](https://waf.io)
+[![Build Status](https://travis-ci.org/kushview/libjuce.svg?branch=master)](https://travis-ci.org/kushview/libjuce)
 
-_**Note:** This is NOT the [official JUCE codebase](https://github.com/WeAreROLI/JUCE.git). It is a Waf build
-centered around upstream JUCE via a submodule._
+A standardized build of [JUCE](http://www.juce.com). This is done by compiling upstream [JUCE](http://www.juce.com) modules as shared libraries and installing them to the system using the [Waf meta build system](https://waf.io)
+
+_**Note:** This is NOT the [official JUCE codebase](https://github.com/WeAreROLI/JUCE.git)._
 
 ### Building/Installing libJUCE
 Since this uses waf, installation is easy. From the command line:
