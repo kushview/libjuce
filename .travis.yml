@@ -5,7 +5,7 @@ language: cpp
 script: python waf configure --enable-vst3 clean build
 
 before_install:
-  - sudo apt-get install -y libalsa-dev libx11-dev libxext-dev libxinerama-dev libxrandr-dev libxcursor-dev libgtk+-3.0 libwebkit2gtk-4.0 libgl-dev
+  - sudo apt-get install -y libasound-dev libx11-dev libxext-dev libxinerama-dev libxrandr-dev libxcursor-dev libgtk+-3.0 libwebkit2gtk-4.0 libgl-dev
 
 addons:
   apt:  
