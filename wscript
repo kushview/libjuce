@@ -563,6 +563,7 @@ def build (bld):
             includes    = [ '.', 'juce', 'src/modules', 'juce/compat/%s/Source' % name ],
             name        = name,
             target      = name,
+            cxxflags    = [],
             use         = [u.upper() for u in proj.getModules()]
         )
         bd = os.path.join (proj.getLibraryCodePath(), 'BinaryData.cpp')
@@ -579,7 +580,8 @@ def build (bld):
         return app
 
     if bld.env.BUILD_PROJUCER:
-        build_project ('src/extras/Projucer/Projucer.jucer', 'Projucer')
+        app = build_project ('src/extras/Projucer/Projucer.jucer', 'Projucer')
+        app.cxxflags.append ('-DJUCER_ENABLE_GPL_MODE=1')
         if juce.is_mac():
             bld.add_post_fun(macdeploy)
     
