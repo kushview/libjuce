@@ -413,11 +413,11 @@ def build_single (bld):
         if bld.env.ASIO:
             library.use.append ('ASIO')
     
-    elif juce.is_mac():
+    elif bld.env.MAC:
         bld.env.use += []
         if bld.env.AUDIO_UNIT: library.use.append ('CORE_AUDIO_KIT')
                 
-    elif juce.is_linux():
+    elif bld.env.LINUX:
         pass
 
     pcobj = bld (
