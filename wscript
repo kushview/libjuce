@@ -69,23 +69,21 @@ mingw32_libs = '''
 def options (opts):
     autowaf.set_options (opts)
     opts.load ('compiler_c compiler_cxx cross juce autowaf')
-    opts.add_option('--projucer', default=False, action="store_true", \
-        dest="projucer", help="Build the Projucer [ Default: False ]")
-    opts.add_option('--juce-demo', default=False, action="store_true", \
-        dest="juce_demo", help="Build the JUCE Demo [ Default: False ]")
+    
     opts.add_option('--no-headers', default=True, action="store_false", \
         dest="install_headers", help="Don't install headers")
     opts.add_option('--disable-multi', default=True, action="store_false", \
         dest="enable_multi", help="Compile individual modules as libraries")
-    opts.add_option('--static', default=False, action="store_true", \
-        dest="static", help="Build Static Libraries [ Default: False ]")
-    
     opts.add_option('--ziptype', default='gz', type='string', \
         dest='ziptype', help="Zip type for waf dist (gz/bz2/zip) [ Default: gz ]")
+
+    group = opts.add_option_group("Applications")
+    group.add_option('--projucer', default=False, action="store_true", \
+        dest="projucer", help="Build the Projucer [ Default: False ]")
     
     group = opts.add_option_group ("Analytics")
     group.add_option('--exclude-analytics', default=True, action="store_false", \
-        dest="juce_analytics", help="Don't build JUCE Analytics module")
+        dest="juce_analytics", help="Don't build the JUCE Analytics module")
     
     group = opts.add_option_group ("Graphics")
     group.add_option('--system-jpeg', default=False, action="store_true", \
@@ -94,6 +92,17 @@ def options (opts):
         dest="system_png", help="Use system PNG")
     
     group = opts.add_option_group ("Audio Devices")
+    group.add_option('--enable-asio', default=False, action="store_true", \
+        dest="asio", help="Enable ASIO")
+    group.add_option ('--asiosdk', type='string', 
+        default=os.path.join(os.path.expanduser('~'),'SDKs/ASIOSDK'),\
+        dest='asiosdk', help="Specify the ASIOSDK path")
+    group.add_option ('--disable-wasapi', default=True, action="store_false", \
+        dest="wasapi", help="Disable WASAPI support")
+    group.add_option('--enable-wasapi-exclusive', default=False, action="store_true", \
+        dest="wasapi_exclusive", help="Enable WASAPI exclusive mode")
+    group.add_option('--disable-directsound', default=True, action="store_false", \
+        dest="directsound", help="Disable DirectSound support")
     group.add_option('--disable-alsa', default=True, action="store_false", \
         dest="alsa", help="Disable ALSA support")
     group.add_option('--enable-jack', default=False, action="store_true", \
@@ -120,10 +129,8 @@ def configure (conf):
     
     conf.env.DEBUG              = conf.options.debug
     conf.env.BUILD_DOCS         = conf.options.docs
-    conf.env.BUILD_PROJUCER     = conf.options.projucer
-    conf.env.BUILD_JUCE_DEMO    = conf.options.juce_demo
-    conf.env.BUILD_MULTI        = conf.options.enable_multi
-    conf.env.BUILD_STATIC       = conf.options.static
+    conf.env.PROJUCER           = conf.options.projucer
+    conf.env.MULTILIBS        = conf.options.enable_multi
     conf.env.INSTALL_HEADERS    = conf.options.install_headers
 
     conf.env.VST3               = conf.options.vst3
@@ -136,11 +143,16 @@ def configure (conf):
     conf.env.BINDIR             = conf.env.PREFIX + '/bin'
     conf.env.INCLUDEDIR         = conf.env.PREFIX + '/include'
 
+    conf.env.XMINGW             = 'mingw' in conf.env.CXX[0]
+    conf.env.MAC                = not bool(conf.env.XMINGW) and juce.is_mac()
+    conf.env.LINUX              = not bool(conf.env.XMINGW) and juce.is_linux()
+    conf.env.WINDOWS            = not bool(conf.env.XMINGW) and juce.is_windows()
+    
     conf.env.MODULES = library_modules
     if not conf.options.juce_analytics:
         conf.env.MODULES.remove ('juce_analytics')
     
-    if 'mingw' in conf.env.CXX[0]:
+    if conf.env.XMINGW:
         conf.env.MODULES.remove('juce_video')
 
     # Write out the version header
@@ -154,11 +166,24 @@ def configure (conf):
     conf.check_cxx_version ('c++14', True)
     conf.check_inline()
     
-    cross_mingw = 'mingw32' in conf.env.CXX[0]
-    if not cross_mingw and juce.is_mac():
+    if conf.env.XMINGW:
+        asiosdkpath = os.path.join (conf.options.asiosdk, 'common')
+        conf.check (header_name='iasiodrv.h', uselib_store='ASIO', mandatory=conf.options.asio,
+                    includes=[asiosdkpath], 
+                    fragment='''
+                        #include "windows.h"
+                        #include "iasiodrv.h"
+                        int main() {
+                            return 0;
+                        }'''
+                    )
+        for l in mingw32_libs.split():
+            conf.check (lib=l, uselib_store=l.upper(), mandatory=True)
+
+    elif conf.env.MAC:
         pass
 
-    elif not cross_mingw and juce.is_linux():
+    elif conf.env.LINUX:
         conf.check (header_name='pthread.h', uselib_store='PTHREAD', mandatory=True)
         conf.check (lib='pthread', uselib_store='PTHREAD', mandatory=True)
 
@@ -183,20 +208,25 @@ def configure (conf):
         conf.check_cfg (package='xcursor', uselib_store='XCURSOR', args=['--libs', '--cflags'], mandatory=True)
         conf.check_cfg (package='gl', uselib_store='GL', args=['--libs', '--cflags'], mandatory=False)
         conf.check_cfg (package='gtk+-3.0',   uselib_store='GTK',   args=['--libs', '--cflags'], mandatory=False)
-        conf.check_cfg (package='webkit2gtk-4.0',   uselib_store='WEBKIT',   args=['--libs', '--cflags'], mandatory=False)
+        conf.check_cfg (package='webkit2gtk-4.0',   uselib_store='WEBKIT', args=['--libs', '--cflags'], mandatory=False)
         
-        conf.check_cfg (package='alsa', uselib_store='ALSA', args=['--libs', '--cflags'], mandatory=True)
-        conf.check_cfg (package='jack', uselib_store='JACK', args=['--libs', '--cflags'], mandatory=False)
-
-    elif cross_mingw or juce.is_windows():
-        for l in mingw32_libs.split():
-            conf.check (lib=l, uselib_store=l.upper(), mandatory=True)
+        conf.check_cfg (package='alsa', uselib_store='ALSA', args=['--libs', '--cflags'], mandatory=conf.options.alsa)
+        conf.check_cfg (package='jack', uselib_store='JACK', args=['--libs', '--cflags'], mandatory=conf.options.jack)
 
     conf.write_config_header ("libjuce_config.h")
 
-    conf.env.ALSA = conf.options.alsa and bool(conf.env.HAVE_ALSA)
-    conf.env.JACK = conf.options.jack and bool(conf.env.HAVE_JACK)
-    conf.env.CURL = bool(conf.env.HAVE_CURL)
+    if conf.env.XMINGW:
+        conf.env.ASIO               = conf.options.asio and bool(conf.env.HAVE_ASIO)
+        conf.env.WASAPI             = conf.options.wasapi
+        conf.env.WASAPI_EXCLUSIVE   = conf.options.wasapi_exclusive
+        conf.env.DIRECTSOUND        = conf.options.directsound
+    else:
+        conf.env.ASIO = conf.env.WASAPI = conf.env.WASAPI_EXCLUSIVE = \
+            conf.env.DIRECTSOUND = False
+
+    conf.env.ALSA       = conf.options.alsa and bool (conf.env.HAVE_ALSA)
+    conf.env.JACK       = conf.options.jack and bool (conf.env.HAVE_JACK)
+    conf.env.CURL       = bool(conf.env.HAVE_CURL)
     
     # Write juce/config.h
 
@@ -216,9 +246,10 @@ def configure (conf):
 
     conf.define ('JUCE_ALSA', conf.env.ALSA)
     conf.define ('JUCE_JACK', conf.env.JACK)
-    conf.define ('JUCE_WASAPI', 0)
-    conf.define ('JUCE_DIRECTSOUND', 0)
-    conf.define ('JUCE_WASAPI_EXCLUSIVE', 0)
+    conf.define ('JUCE_ASIO', conf.env.ASIO)
+    conf.define ('JUCE_WASAPI', conf.env.WASAPI)
+    conf.define ('JUCE_WASAPI_EXCLUSIVE', conf.env.WASAPI_EXCLUSIVE)
+    conf.define ('JUCE_DIRECTSOUND', conf.env.DIRECTSOUND)
     
     conf.define ('JUCE_PLUGINHOST_AU', conf.options.audio_unit)
     conf.define ('JUCE_PLUGINHOST_VST', conf.options.vst)
@@ -243,20 +274,27 @@ def configure (conf):
     juce.display_msg (conf, 'Version', VERSION)
     juce.display_msg (conf, 'Prefix', conf.env.PREFIX)
     juce.display_msg (conf, 'Debuggable', conf.env.DEBUG)
-
-    print
-    juce.display_header ('Modules')
-    for m in library_modules:
-        juce.display_msg (conf, m.replace('juce_', ''), m in conf.env.MODULES)
+    juce.display_msg (conf, 'Multi Libs', conf.env.MULTILIBS)
+    juce.display_msg (conf, 'Modules', [m.replace('juce_', '') for m in conf.env.MODULES])
 
     print
     juce.display_header ('Core')
-    juce.display_msg (conf, 'CURL', bool(conf.env.LIB_CURL))
+    juce.display_msg (conf, 'CURL', conf.env.CURL)
 
     print
     juce.display_header ('Audio Devices')
-    juce.display_msg (conf, 'JACK', conf.env.JACK)
-    juce.display_msg (conf, 'ALSA', conf.env.ALSA)
+    if conf.env.MAC:
+        juce.display_msg (conf, "CoreAudio", conf.env.MAC)
+    elif conf.env.LINUX:
+        juce.display_msg (conf, 'JACK', conf.env.JACK)
+        juce.display_msg (conf, 'ALSA', conf.env.ALSA)
+    elif conf.env.XMINGW:
+        juce.display_msg (conf, 'ASIO', conf.env.ASIO)
+        if conf.env.ASIO:
+            juce.display_msg (conf, 'ASIOSDK', conf.options.asiosdk)
+        juce.display_msg (conf, 'WASAPI', conf.env.WASAPI)
+        juce.display_msg (conf, 'WASAPI Exclusive', conf.env.WASAPI_EXCLUSIVE)
+        juce.display_msg (conf, 'DirectSound', conf.env.DIRECTSOUND)
 
     print
     juce.display_header ('Graphics')
@@ -276,9 +314,9 @@ def configure (conf):
 
     print
     juce.display_header ('Applications')
-    juce.display_msg (conf, 'Projucer', bool (conf.env.BUILD_PROJUCER))
+    juce.display_msg (conf, 'Projucer', bool (conf.env.PROJUCER))
 
-    if juce.is_mac():
+    if conf.env.MAC:
         print
         juce.display_header ('Mac Options')
         juce.display_msg (conf, 'OSX Arch', conf.env.ARCH)
@@ -286,7 +324,7 @@ def configure (conf):
         juce.display_msg (conf, 'OSX SDK', conf.options.mac_sdk)
     
     print
-    juce.display_header ('Global Compiler Flags')
+    juce.display_header ('Compiler')
     juce.display_msg (conf, 'CFLAGS', conf.env.CFLAGS)
     juce.display_msg (conf, 'CXXFLAGS', conf.env.CXXFLAGS)
     juce.display_msg (conf, 'LDFLAGS', conf.env.LINKFLAGS)
@@ -367,8 +405,9 @@ def build_single (bld):
         vnum        = JUCE_VERSION
     )
     
-    if 'mingw' in bld.env.CXX[0]:
-        pass
+    if bld.env.XMINGW:
+        if bld.env.ASIO:
+            library.use.append ('ASIO')
     
     elif juce.is_mac():
         bld.env.use += []
@@ -545,7 +584,7 @@ def build (bld):
     
     generate_code (bld)
 
-    if bld.env.BUILD_MULTI:
+    if bld.env.MULTILIBS:
         build_modules (bld)
     else:
         build_single (bld)
@@ -563,7 +602,7 @@ def build (bld):
             cxxflags    = [],
             use         = [ u.upper() for u in proj.getModules()]
         )
-        if not bld.env.BUILD_MULTI:
+        if not bld.env.MULTILIBS:
             app.use = [ 'JUCE' ]
         
         bd = os.path.join (proj.getLibraryCodePath(), 'BinaryData.cpp')
@@ -586,7 +625,7 @@ def build (bld):
 
         return app
 
-    if bld.env.BUILD_PROJUCER:
+    if bld.env.PROJUCER:
         app = build_project ('src/extras/Projucer/Projucer.jucer', 'Projucer')
         app.cxxflags.append ('-DJUCER_ENABLE_GPL_MODE=1')
         if 'mingw' in bld.env.CXX[0]:
