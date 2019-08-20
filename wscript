@@ -405,6 +405,10 @@ def build_single (bld):
         vnum        = JUCE_VERSION
     )
     
+    if bld.env.VST3:
+        vst3path = 'src/modules/juce_audio_processors/format_types/VST3_SDK'
+        library.includes.append (vst3path)
+
     if bld.env.XMINGW:
         if bld.env.ASIO:
             library.use.append ('ASIO')
