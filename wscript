@@ -581,6 +581,9 @@ def build (bld):
                                     'src/extras/%s/Builds/MacOSX/Icon.icns' % name ]
             app.target          = 'Applications/%s' % name
 
+        elif juce.is_linux():
+            app.target = 'bin/%s' % name
+
         return app
 
     if bld.env.BUILD_PROJUCER:
