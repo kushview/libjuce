@@ -151,7 +151,7 @@ def configure (conf):
     conf.define ("JUCE_EXTRA_VERSION", JUCE_EXTRA_VERSION)
     conf.write_config_header ('juce/version.h', 'LIBJUCE_VERSION_H')
 
-    conf.check_cxx_version()
+    conf.check_cxx_version ('c++14', True)
     conf.check_inline()
     
     cross_mingw = 'mingw32' in conf.env.CXX[0]
@@ -196,14 +196,15 @@ def configure (conf):
 
     conf.env.ALSA = conf.options.alsa and bool(conf.env.HAVE_ALSA)
     conf.env.JACK = conf.options.jack and bool(conf.env.HAVE_JACK)
-
+    conf.env.CURL = bool(conf.env.HAVE_CURL)
+    
     # Write juce/config.h
+
     conf.define ('JUCE_REPORT_APP_USAGE', 0)
     conf.define ('JUCE_DISPLAY_SPLASH_SCREEN', 0)
     conf.define ('JUCE_USE_DARK_SPLASH_SCREEN', 0)
 
-    conf.define ('JUCE_USE_CURL', bool(conf.env.HAVE_CURL))
-    
+    conf.define ('JUCE_USE_CURL', conf.env.CURL)
     conf.define ('JUCE_INCLUDE_PNGLIB_CODE', not bool(conf.env.LIB_PNG))
     conf.define ('JUCE_INCLUDE_JPEGLIB_CODE', not bool(conf.env.LIB_JPEG))
 
@@ -360,7 +361,7 @@ def build_single (bld):
         source      = source,
         includes    = [ 'juce', 'src/modules' ],
         name        = 'JUCE',
-        target      = 'local/lib/%s' % library_slug (bld, 'juce'),
+        target      = 'lib/%s' % library_slug (bld, 'juce'),
         use         = use_flags,
         env         = bld.env.derive(),
         vnum        = JUCE_VERSION
@@ -373,8 +374,6 @@ def build_single (bld):
         bld.env.use += []
         if bld.env.AUDIO_UNIT: library.use.append ('CORE_AUDIO_KIT')
                 
-
-
     elif juce.is_linux():
         pass
 
@@ -400,17 +399,13 @@ def build_single (bld):
     else:
         pcobj.CFLAGS += ' -DDEBUG=1'
 
-def build_cross_mingw (bld):
-    '''Not yet supported'''
-    return
-
 def build_modules (bld):
     if 'mingw' in bld.env.CXX[0]:
         Logs.warn('Cannot compile multiple libraries with: %s' % bld.env.CXX[0])
-        return
+        bld.fatal('Try adding \'--disable-multi\' to configure')
     
     subst_env = bld.env.derive()
-    subst_env.CFLAGS = []
+    subst_env.CFLAGS = [] # prevent overwriting values from the main environment
 
     for m in bld.env.MODULES:
         module = juce.get_module_info (bld, m)
@@ -426,26 +421,28 @@ def build_modules (bld):
             features    = 'cxxshlib cxx',
             includes    = [ 'juce', 'src/modules' ],
             source      = [ 'build/code/include_%s.%s' % (m, ext) ],
-            target      = 'local/lib/%s' % module_libname,
+            target      = 'lib/%s' % module_libname,
             name        = m.upper(),
             use         = [u.upper() for u in module.dependencies()],
             vnum        = module.version()
         )
         
         if bld.env.VST3:
-            library.includes.append ('src/modules/juce_audio_processors/format_types/VST3_SDK')
+            vst3path = 'src/modules/juce_audio_processors/format_types/VST3_SDK'
+            library.includes.append (vst3path)
         
-        if 'mingw' in bld.env.CXX[0]:
+        if 'mingw' in bld.env.CXX [0]:
             library.use += [l.replace('-l','').upper() for l in module.mingwLibs()]
             if m == 'juce_events':
+                # This will always fail: JUCE windows has a circular depencency which
+                # breaks linking separate DLLs
                 if 'juce_gui_extra' in bld.env.MODULES:
-                    # library.use.remove ('JUCE_CORE')
                     library.use.append ('JUCE_GUI_EXTRA')
         
         elif juce.is_linux():
             library.use += module.linuxPackages()
             if m == 'juce_core':
-                if bool(bld.env.HAVE_CURL):
+                if bld.env.CURL:
                     library.use.append ('CURL')
             if m == 'juce_gui_extra':
                 if bool(bld.env.HAVE_WEBKIT):
@@ -512,8 +509,6 @@ def build_modules (bld):
 
     jpcobj.REQUIRED = ' '.join (required)
 
-    maybe_install_headers (bld)
-
 def generate_code (bld):
     for mod in library_modules:
         bld (
@@ -555,6 +550,8 @@ def build (bld):
     else:
         build_single (bld)
 
+    maybe_install_headers (bld)
+
     def build_project (path, name):
         proj = juce.Project (bld, path)
         app = bld (
@@ -564,13 +561,20 @@ def build (bld):
             name        = name,
             target      = name,
             cxxflags    = [],
-            use         = [u.upper() for u in proj.getModules()]
+            use         = [ u.upper() for u in proj.getModules()]
         )
+        if not bld.env.BUILD_MULTI:
+            app.use = [ 'JUCE' ]
+        
         bd = os.path.join (proj.getLibraryCodePath(), 'BinaryData.cpp')
         if os.path.exists (bd):
             app.source.append (bd)
         
-        if juce.is_mac():
+        if 'mingw' in bld.env.CXX[0]:
+            app.target = 'lib/%s' % name
+            pass
+        
+        elif juce.is_mac():
             app.mac_app         = True
             app.mac_plist       = 'juce/compat/%s/Info-App.plist' % name
             app.mac_files       = [ 'src/extras/%s/Builds/MacOSX/RecentFilesMenuTemplate.nib' % name,
@@ -582,11 +586,13 @@ def build (bld):
     if bld.env.BUILD_PROJUCER:
         app = build_project ('src/extras/Projucer/Projucer.jucer', 'Projucer')
         app.cxxflags.append ('-DJUCER_ENABLE_GPL_MODE=1')
-        if juce.is_mac():
-            bld.add_post_fun(macdeploy)
+        if 'mingw' in bld.env.CXX[0]:
+            if not bld.is_install:
+                bld.add_post_fun (copydlls)
+        elif juce.is_mac():
+            if not bld.is_install:
+                bld.add_post_fun (macdeploy)
     
-    maybe_install_headers (bld)
-
     if bld.env.BUILD_DOCS:
         if not bld.is_install:
             bld.add_post_fun(build_docs)
@@ -594,8 +600,11 @@ def build (bld):
                            bld.path.ant_glob ("build/doc/**/*"), \
                            relative_trick=True, cwd=bld.path.find_dir ('build/doc'))
 
-def build_docs(ctx):
-    call(['bash', 'tools/build-docs.sh'])
+def copydlls (ctx):
+    call (['bash', 'tools/copydlls.sh', ctx.env.CXX [0]])
+
+def build_docs (ctx):
+    call (['bash', 'tools/build-docs.sh'])
 
 def dist (ctx):
     z = ctx.options.ziptype

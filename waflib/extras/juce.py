@@ -65,7 +65,7 @@ def check_juce (self):
 def check_cxx_version (self, std='c++14', required=True):
     line_just = self.line_just
     
-    if 'mingw32' in self.env.CXX [0]:
+    if 'mingw32' in self.env.CXX[0]:
         self.check_cxx (cxxflags=["-std=%s" % std], mandatory=required)
         self.env.append_unique ("CXXFLAGS", ["-std=%s" % std])
     elif is_mac():
