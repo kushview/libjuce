@@ -188,6 +188,8 @@ def configure (conf):
         conf.check (lib='pthread', uselib_store='PTHREAD', mandatory=True)
 
         if conf.options.system_png:
+            conf.check (header_name='png.h', uselib_store='PNG', mandatory=True, auto_add_header_name=True)
+            conf.check (header_name='pngconf.h', uselib_store='PNG', mandatory=True, auto_add_header_name=True)
             conf.check_cfg (package='libpng', uselib_store='PNG', args=['--libs', '--cflags'], mandatory=True)
 
         if conf.options.system_jpeg:
@@ -235,10 +237,10 @@ def configure (conf):
     conf.define ('JUCE_USE_DARK_SPLASH_SCREEN', 0)
 
     conf.define ('JUCE_USE_CURL', conf.env.CURL)
-    conf.define ('JUCE_INCLUDE_PNGLIB_CODE', not bool(conf.env.LIB_PNG))
-    conf.define ('JUCE_INCLUDE_JPEGLIB_CODE', not bool(conf.env.LIB_JPEG))
+    conf.define ('JUCE_INCLUDE_PNGLIB_CODE', not bool(conf.env.HAVE_PNG))
+    conf.define ('JUCE_INCLUDE_JPEGLIB_CODE', not bool(conf.env.HAVE_JPEG))
 
-    if juce.is_linux():
+    if conf.env.LINUX:
         conf.env.WEB_BROWSER = bool(conf.env.HAVE_GTK) and bool(conf.env.HAVE_WEBKIT)
     else:
         conf.env.WEB_BROWSER = True
