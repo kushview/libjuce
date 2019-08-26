@@ -194,7 +194,6 @@ def configure (conf):
 
         if conf.options.system_jpeg:
             conf.check (header_name='stdio.h', uselib_store='STDIO', mandatory=True, auto_add_header_name=True)
-            conf.check (header_name='jpegint.h', uselib_store='JPEG', mandatory=True, auto_add_header_name=True)
             conf.check (header_name='jpeglib.h', uselib_store='JPEG', mandatory=True)
             conf.check (lib='jpeg', uselib_store='JPEG', mandatory=True)
         
