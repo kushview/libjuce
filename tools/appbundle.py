@@ -488,7 +488,7 @@ ap.add_argument("-add-qt-tr", nargs=1, metavar="languages", default=[], help="ad
 ap.add_argument("-translations-dir", nargs=1, metavar="path", default=None, help="Path to Qt's translation files")
 ap.add_argument("-add-resources", nargs="+", metavar="path", default=[], help="list of additional files or folders to be copied into the bundle's resources; must be the last argument")
 ap.add_argument("-volname", nargs=1, metavar="volname", default=[], help="custom volume name for dmg")
-
+ap.add_argument("-dist-dir", nargs=1, metavar="path", default=["build/dist"], help="Custom output directory")
 config = ap.parse_args()
 
 verbose = config.verbose[0]
@@ -582,11 +582,12 @@ else:
 
 # ------------------------------------------------
 
-if os.path.exists("dist"):
+distdir = config.dist_dir[0]
+if os.path.exists (distdir):
     if verbose >= 2:
         print("+ Removing old dist folder +")
     
-    shutil.rmtree("dist")
+    shutil.rmtree (distdir)
 
 # ------------------------------------------------
 
@@ -597,14 +598,14 @@ else:
 
 # ------------------------------------------------
 
-target = os.path.join ("dist", os.path.basename (app_bundle))
+target = os.path.join (distdir, os.path.basename (app_bundle))
 
 if verbose >= 2:
     print("+ Copying source bundle +")
 if verbose >= 3:
     print(app_bundle, "->", target)
 
-os.mkdir("dist")
+os.mkdir (distdir)
 shutil.copytree(app_bundle, target, symlinks=True)
 
 applicationBundle = ApplicationBundleInfo(target)
@@ -742,14 +743,14 @@ if config.dmg is not None:
     
     if fancy is None:
         try:
-            runHDIUtil("create", dmg_name, srcfolder="dist", format="UDBZ", volname=volname, ov=True)
+            runHDIUtil("create", dmg_name, srcfolder=distdir, format="UDBZ", volname=volname, ov=True)
         except subprocess.CalledProcessError as e:
             sys.exit(e.returncode)
     else:
         if verbose >= 3:
             print("Determining size of \"dist\"...")
         size = 0
-        for path, dirs, files in os.walk("dist"):
+        for path, dirs, files in os.walk(distdir):
             for file in files:
                 size += os.path.getsize(os.path.join(path, file))
         size += int(size * 0.15)
@@ -757,7 +758,7 @@ if config.dmg is not None:
         if verbose >= 3:
             print("Creating temp image for modification...")
         try:
-            runHDIUtil("create", dmg_name + ".temp", srcfolder="dist", format="UDRW", size=size, volname=volname, ov=True)
+            runHDIUtil("create", dmg_name + ".temp", srcfolder=distdir, format="UDRW", size=size, volname=volname, ov=True)
         except subprocess.CalledProcessError as e:
             sys.exit(e.returncode)
         
