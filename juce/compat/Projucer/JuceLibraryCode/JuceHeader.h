@@ -1,6 +1,6 @@
 #pragma once
 #include <juce/juce.h>
-
+using namespace juce;
 #include "../../../../src/extras/Projucer/JuceLibraryCode/BinaryData.h"
 
 namespace ProjectInfo

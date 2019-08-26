@@ -85,7 +85,3 @@
 #if JUCE_MODULE_AVAILABLE_juce_video
   #include  <juce_video/juce_video.h>
 #endif
-
-#if ! DONT_SET_USING_JUCE_NAMESPACE
-  using namespace juce;
-#endif
