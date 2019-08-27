@@ -163,6 +163,9 @@ def configure (conf):
     conf.define ("JUCE_EXTRA_VERSION", JUCE_EXTRA_VERSION)
     conf.write_config_header ('juce/version.h', 'LIBJUCE_VERSION_H')
 
+    conf.env.append_unique('CXXFLAGS', ['-fvisibility=hidden'])
+    conf.env.append_unique('CFLAGS', ['-fvisibility=hidden'])
+
     conf.check_cxx_version ('c++14', True)
     conf.check_inline()
     
@@ -257,8 +260,11 @@ def configure (conf):
     conf.define ('JUCE_PLUGINHOST_VST3', conf.options.vst3)
     conf.define ('JUCE_PLUGINHOST_LADSPA', conf.options.ladspa and bool(conf.env.HAVE_LADSPA))
 
-    conf.define ('JUCE_STANDALONE_APPLICATION', 0)
+    conf.define ('JUCE_STANDALONE_APPLICATION', False)
+    conf.define ('JUCE_DLL_BUILD', True)
+    conf.define ('JUCE_DLL', True)
     
+
     for mod in library_modules:
         conf.define('JUCE_MODULE_AVAILABLE_%s' % mod, True)
     conf.write_config_header ('juce/config.h', 'LIBJUCE_MODULES_CONFIG_H')
@@ -269,7 +275,7 @@ def configure (conf):
     conf.env.JUCE_MODULE_PATH = 'src/modules'
     conf.env.append_unique ('CXXFLAGS', '-I' + os.getcwd() + '/build')
     conf.env.append_unique ('CFLAGS', '-I' + os.getcwd() + '/build')
-
+    
     print
     juce.display_header ('libJUCE')
     juce.display_msg (conf, 'Version', VERSION)
