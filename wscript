@@ -20,7 +20,7 @@ from waflib.extras import juce as juce
 from waflib.extras import autowaf as autowaf
 from waflib.extras import cross as cross
 
-JUCE_VERSION = '5.4.3'
+JUCE_VERSION = '5.4.5'
 JUCE_MAJOR_VERSION = JUCE_VERSION[0]
 JUCE_MINOR_VERSION = JUCE_VERSION[2]
 JUCE_MICRO_VERSION = JUCE_VERSION[4]
@@ -163,10 +163,10 @@ def configure (conf):
     conf.define ("JUCE_EXTRA_VERSION", JUCE_EXTRA_VERSION)
     conf.write_config_header ('juce/version.h', 'LIBJUCE_VERSION_H')
 
-    conf.env.append_unique('CXXFLAGS', ['-fvisibility=hidden'])
-    conf.env.append_unique('CFLAGS', ['-fvisibility=hidden'])
+    # conf.env.append_unique('CXXFLAGS', ['-fvisibility=hidden'])
+    # conf.env.append_unique('CFLAGS', ['-fvisibility=hidden'])
 
-    conf.check_cxx_version ('c++14', True)
+    conf.check_cxx_version ('c++17', True)
     conf.check_inline()
     
     if conf.env.XMINGW:
