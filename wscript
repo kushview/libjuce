@@ -474,9 +474,11 @@ def build_modules (bld):
             target      = 'lib/%s' % module_libname,
             name        = m.upper(),
             use         = [u.upper() for u in module.dependencies()],
-            vnum        = module.version()
+            vnum        = module.version(),
+            linkflags   = [ '-fPIC' ],
+            cxxflags    = [ '-fPIC' ]
         )
-        
+
         if bld.env.VST3:
             vst3path = 'src/modules/juce_audio_processors/format_types/VST3_SDK'
             library.includes.append (vst3path)
