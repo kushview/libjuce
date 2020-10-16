@@ -3,7 +3,12 @@
 set -ex
 
 ./waf distclean
-./waf configure build install "$@"
-./waf clean configure build --debug "$@"
-./waf install --no-headers
+./waf configure $@
+./waf build 
+sudo ./waf install 
+
+./waf clean 
+./waf configure --debug $@
+./waf build
+sudo ./waf install --no-headers
 ./waf distclean
