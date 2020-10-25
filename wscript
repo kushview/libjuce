@@ -91,6 +91,10 @@ def options (opts):
     group.add_option('--system-png', default=False, action="store_true", \
         dest="system_png", help="Use system PNG")
     
+    group = opts.add_option_group ("GUI Extra")
+    group.add_option('--enable-web-browser', default=False, action="store_true", \
+        dest="web_browser", help="Don't include the web browser component")
+
     group = opts.add_option_group ("Audio Devices")
     group.add_option('--enable-asio', default=False, action="store_true", \
         dest="asio", help="Enable ASIO")
@@ -211,8 +215,9 @@ def configure (conf):
         conf.check_cfg (package='xrandr', uselib_store='XRANDR', args=['--libs', '--cflags'], mandatory=True)
         conf.check_cfg (package='xcursor', uselib_store='XCURSOR', args=['--libs', '--cflags'], mandatory=True)
         conf.check_cfg (package='gl', uselib_store='GL', args=['--libs', '--cflags'], mandatory=False)
-        conf.check_cfg (package='gtk+-3.0',   uselib_store='GTK',   args=['--libs', '--cflags'], mandatory=False)
-        conf.check_cfg (package='webkit2gtk-4.0',   uselib_store='WEBKIT', args=['--libs', '--cflags'], mandatory=False)
+        if conf.options.web_browser:
+            conf.check_cfg (package='gtk+-3.0',   uselib_store='GTK',   args=['--libs', '--cflags'], mandatory=False)
+            conf.check_cfg (package='webkit2gtk-4.0',   uselib_store='WEBKIT', args=['--libs', '--cflags'], mandatory=False)
         
         conf.check_cfg (package='alsa', uselib_store='ALSA', args=['--libs', '--cflags'], mandatory=conf.options.alsa)
         conf.check_cfg (package='jack', uselib_store='JACK', args=['--libs', '--cflags'], mandatory=conf.options.jack)
@@ -243,9 +248,9 @@ def configure (conf):
     conf.define ('JUCE_INCLUDE_JPEGLIB_CODE', not bool(conf.env.HAVE_JPEG))
 
     if conf.env.LINUX:
-        conf.env.WEB_BROWSER = bool(conf.env.HAVE_GTK) and bool(conf.env.HAVE_WEBKIT)
+        conf.env.WEB_BROWSER = bool(conf.options.web_browser) and bool(conf.env.HAVE_GTK) and bool(conf.env.HAVE_WEBKIT)
     else:
-        conf.env.WEB_BROWSER = True
+        conf.env.WEB_BROWSER = bool(conf.options.web_browser)
     conf.define ('JUCE_WEB_BROWSER', conf.env.WEB_BROWSER)
 
     conf.define ('JUCE_ALSA', conf.env.ALSA)
